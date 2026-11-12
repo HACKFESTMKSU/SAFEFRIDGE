@@ -1,394 +1,208 @@
-# ColdGuard — Phased Implementation Plan
+# ColdGuard — Prototype Implementation Plan
 
 | Field | Value |
 | --- | --- |
-| Based on | SRS v1.0 (11 November 2026) |
-| Goal | Ship a working MVP that meets §11.1 acceptance, then layer commercial and AI features |
-| Stack (from SRS) | ESP32 firmware · MQTT/TLS · FastAPI · PostgreSQL · TimescaleDB · Redis · React · Africa’s Talking / Twilio / WhatsApp |
+| Based on | SRS v2.1 (12 November 2026) |
+| Goal | Working demo: ESP32 sensors → MQTT → dashboard → threshold alert (+ GSM SMS offline) |
+| Stack | ESP32 (PlatformIO) · Mosquitto · FastAPI · PostgreSQL · React · email · GSM SMS |
+| Hardware | ESP32, DHT11, BMP180, ACS712, water sensor, SIM800L, MQ-3 (optional), breadboard, jumpers |
 
 ---
 
-## Guiding principles
+## Principles
 
-1. **Vertical slices over horizontal layers** — each phase ends with something demonstrable (device → cloud → UI → alert), not only backend scaffolding.
-2. **MVP Must-haves (M) first** — Should (S) and Could (C) items are deferred unless they unblock an M requirement.
-3. **Threshold monitoring before AI** — AI is decision support and must be disableable (ML-05, ML-06).
-4. **Offline resilience is core** — local buffer + GSM SMS fallback are MVP acceptance items, not polish.
-5. **Tenant isolation from day one** — every query and MQTT topic is scoped by tenant (FR-02, NFR-15).
+1. **Vertical slices** — each phase ends with something you can show.
+2. **Build for the kit you own** — include GSM SMS fallback; defer door/battery until you have them.
+3. **Three roles only** — Admin, Operator, Technician.
+4. **Thresholds before AI** — no ML in the prototype.
+5. **Single organization** — no multi-tenant complexity.
 
 ---
 
 ## Phase map
 
 ```text
-Phase 0  Foundation & platform skeleton
-Phase 1  Edge device + cloud ingestion (telemetry path)
-Phase 2  Registry, dashboard, live monitoring
-Phase 3  Alerts, incidents, notifications (MVP core)
-Phase 4  Offline resilience, GSM, OTA, hardening
-Phase 5  AI / analytics (anomaly + explainability)
-Phase 6  Commercial release (S features) & pilot
-Phase 7  Production readiness, UAT, launch
+Phase 0  Project skeleton + auth
+Phase 1  Firmware + MQTT ingestion
+Phase 2  Assets, dashboard, history
+Phase 3  Alerts + incidents (demo-ready)
+Phase 4  Offline buffer + GSM SMS + email
 ```
 
-| Phase | Focus | Outcome |
-| --- | --- | --- |
-| 0 | Foundation | Runnable local stack, auth, empty schemas |
-| 1 | Ingestion | Device publishes; cloud stores readings |
-| 2 | Dashboard | Sites/assets/devices managed; live + history UI |
-| 3 | Incidents | Excursion → alert → ack → resolve → report |
-| 4 | Resilience | Buffer, SMS fallback, OTA, security bar |
-| 5 | AI MVP | Baseline anomaly + root-cause hints |
-| 6 | Commercial | Humidity/compressor/ambient, webhooks, exports |
-| 7 | Launch | Lab + field UAT, staging/prod, pilot |
-
----
-
-## Phase 0 — Foundation & platform skeleton
-
-**Objective:** Shared infrastructure, identity, and multi-tenant data model so later phases plug into a stable core.
-
-### Deliverables
-
-- Monorepo (or clear multi-repo) layout: `firmware/`, `backend/`, `web/`, `infra/`, `docs/`
-- Local `docker-compose`: PostgreSQL, TimescaleDB (or Postgres + Timescale), Redis, Mosquitto/EMQX
-- FastAPI project skeleton with health checks, structured logging, config via env
-- React app scaffold with routing, auth shell, design tokens
-- Core relational schema: Tenant, User, Role, Site, Asset, Device, Sensor, AuditLog
-- Auth: email/password registration, verification email, login, password reset (FR-01 partial)
-- RBAC middleware enforcing roles on API (FR-03); tenant isolation tests
-- CI: lint, unit tests, container build
-- Environments documented: Dev / Staging / Prod / Hardware lab (§13.1)
-
-### Exit criteria
-
-- [ ] User can register, verify, log in, and call a protected `/me` endpoint
-- [ ] Tenant A cannot read Tenant B data in API tests
-- [ ] Compose stack starts with one command; migrations apply cleanly
-- [ ] Audit log records login and failed auth attempts
-
-### SRS coverage
-
-FR-01 (base), FR-02, FR-03 (base), FR-04 (profile fields), NFR-12/14/15/16/19 (scaffolding), §7.1 entities
-
----
-
-## Phase 1 — Edge device + cloud ingestion
-
-**Objective:** Close the physical-to-cloud loop: sensors → MQTT → validated storage.
-
-### Hardware / firmware
-
-- ESP32 / ESP32-S3 board bring-up (HW-01)
-- Sensors: internal temperature probe (FR-09), door reed (FR-11), voltage/power (FR-12), status LED (HW-08)
-- Configurable sample interval (default 60s; 10s–15min)
-- Local clock + timestamps; basic sensor plausibility checks (FR-15 start)
-- MQTT over TLS publish to topics (§8.1):
-  - `.../telemetry`, `.../events`, `.../status`
-- Device credentials (token or cert) unique per device (NFR-18)
-- Minimal local buffer (even if not yet 30 days) for short disconnects
-
-### Cloud
-
-- MQTT broker with TLS and per-device auth
-- Ingestion worker: validate payload → write time-series + device last-seen
-- Quality flags: Valid / Suspicious / Missing / Delayed (§7.3)
-- Device registry API: create device, issue credentials, record firmware version
-
-### Exit criteria
-
-- [ ] Lab device reports temperature, door, power, battery/signal at least once per minute
-- [ ] Telemetry visible in DB within 500ms under lab load (NFR-03 target)
-- [ ] Invalid or out-of-range readings flagged, not silently stored as Valid
-- [ ] Device shows online / last-seen after first connect (FR-18 partial)
-
-### SRS coverage
-
-FR-07 (provisioning start), FR-09, FR-11, FR-12, FR-15 (partial), FR-18 (partial), HW-01–05/08, §8.1, NFR-03/13/18
-
----
-
-## Phase 2 — Registry, dashboard, live monitoring
-
-**Objective:** Operators can manage sites/assets/devices and see live + historical status.
-
-### Backend / API
-
-- Site CRUD + user–site assignment (FR-05)
-- Asset registration with thresholds and status lifecycle (FR-06); archive instead of hard delete
-- Device provisioning: QR / pairing code, activate on first successful pair (FR-07)
-- Telemetry query APIs: latest, range, aggregates (min/max/avg)
-- Connectivity status: online / offline / degraded; offline alert rule stub (FR-18)
-
-### Frontend
-
-- Login + MFA entry point (TOTP) (FR-01)
-- Executive / site / asset dashboards (§8.2)
-- Live reading + 24h / 7d / 90d charts (FR-09)
-- Device management: pair, reassign, health
-- Mobile-responsive layout (NFR-27)
-
-### Exit criteria
-
-- [ ] Admin creates site → asset → pairs device via QR/code
-- [ ] Dashboard shows current temp and historical chart within NFR targets in staging
-- [ ] Filter by site and asset status works
-- [ ] Device offline after missed interval is visible on UI
-
-### SRS coverage
-
-FR-05–07, FR-09 (display), FR-18, NFR-01/05/27/28/30, §8.2 primary screens (partial)
-
----
-
-## Phase 3 — Alerts, incidents, notifications (MVP core)
-
-**Objective:** Meet the core “excursion → respond → document” product promise.
-
-### Rules engine
-
-- Warning / critical high-low thresholds with duration before fire (FR-19)
-- Validation of threshold configs
-- Maintenance mode with expiry; critical alerts policy (FR-22)
-- Automatic incident creation with unique reference (FR-24)
-- Dedup: related alerts link to one incident
-
-### Notifications
-
-- In-app + email (FR-20)
-- SMS + WhatsApp via Africa’s Talking / Twilio / WhatsApp Business (FR-20, FR-40)
-- Delivery status logging
-- Escalation ladder (default 10 min) until ack/resolve (FR-21)
-- Quiet hours with critical bypass (FR-04)
-
-### Incident workflow
-
-- Acknowledge (dashboard / deep link) stops escalation (FR-25)
-- Guided response copy by issue type (FR-26)
-- Resolve with category, notes, optional photos (FR-27)
-- Searchable history + CSV/Excel export (FR-28 partial)
-- Excursion PDF report with immutable incident ID (FR-35)
-
-### Exit criteria (aligns with §11.1)
-
-- [ ] Sustained temp excursion creates incident and notifies assigned users
-- [ ] Unacked critical alert escalates on schedule
-- [ ] Ack → guided action → resolve → PDF report downloadable
-- [ ] Maintenance mode suppresses non-critical noise
-- [ ] Every notification attempt logged
-
-### SRS coverage
-
-FR-19–22, FR-24–28, FR-35, FR-40, NFR-04/11/28/30, §10.2 excursion workflow
-
----
-
-## Phase 4 — Offline resilience, GSM, OTA, security hardening
-
-**Objective:** Pass remaining §11.1 hardware/ops acceptance and security bar (§11.3).
-
-### Firmware / hardware
-
-- Local storage ≥ 30 days at 1-min interval; chronological replay on reconnect (FR-16)
-- Delayed readings keep original timestamps; quality flag Delayed
-- GSM module: critical SMS when internet down; rate limits with critical override (FR-17)
-- Battery / supercapacitor path: detect power loss & restore; ≥8h monitoring target (§6.2)
-- Distinguish device-offline vs facility power outage where possible (FR-12, FR-18)
-- OTA updates with rollback (HW-09, NFR-32/33)
-- Enclosure, mount, factory reset for authorized staff (HW-10–12)
-- Post-install verification test flow (§6.3)
-
-### Platform security & compliance
-
-- HTTPS everywhere; encrypted MQTT end-to-end verified
-- Device credentials not reusable across tenants
-- RBAC on every endpoint; audit: login, config, ack, export (NFR-16, §11.3)
-- Encryption at rest for sensitive fields (NFR-17)
-- Data retention defaults (§7.2); tenant retention config (NFR-24)
-- Privacy: lawful basis record, subject access/correct/delete hooks (NFR-21–23)
-- REST API keys / OAuth for integrations (FR-38 base)
-
-### Exit criteria
-
-- [ ] Simulated internet outage: buffer fills, then replay preserves timestamps
-- [ ] Simulated outage: SMS critical alert delivered with asset, temp, threshold, time
-- [ ] Short power cut: device keeps monitoring on backup
-- [ ] OTA success + forced-fail rollback in hardware lab
-- [ ] Security acceptance checklist §11.3 green in staging
-
-### SRS coverage
-
-FR-16–18, FR-12 (full), FR-38 (base), HW-06–12, NFR-07–10/12–19/21–24/32–36, §11.1 offline items, §11.3
-
----
-
-## Phase 5 — AI & analytics (MVP anomaly)
-
-**Objective:** Explainable anomaly detection on top of solid threshold monitoring; AI optional per tenant/asset.
-
-### Models (MVP priority M)
-
-- Per-asset baseline after ≥7 days valid data (FR-29)
-- Anomaly score + top contributing factors
-- Distinguish normal door-open recovery vs sustained drift
-- Threshold engine remains primary path; AI disable flag (ML-05)
-
-### Product surface
-
-- Anomaly indicators on asset dashboard
-- Incident enrichment with “likely factors” (basic correlation: door / power / sensor)
-- Clear “decision support” labelling (ML-06)
-- Log model version + features with each prediction (ML-04 start)
-
-### Exit criteria (§11.2)
-
-- [ ] Baseline builds after 7 days in lab/staging
-- [ ] Injected abnormal pattern raises anomaly score
-- [ ] Door vs power distinction ≥80% on scripted test set
-- [ ] Disabling AI leaves threshold alerts intact
-- [ ] Predictions logged with version metadata
-
-### SRS coverage
-
-FR-29, ML-05/06, §9, §10.1 step 8, §11.2
-
-**Deferred to Phase 6:** FR-30 forecasting, FR-31 failure-risk, FR-32 root-cause assistant (full), FR-33 energy, FR-34 benchmarking
-
----
-
-## Phase 6 — Commercial release features (Should-haves)
-
-**Objective:** First commercial release beyond MVP.
-
-### Sensing & analytics
-
-- Humidity monitoring + thresholds (FR-10)
-- Compressor current: duty cycle, short-cycling, recovery after door (FR-13)
-- Ambient temp correlation charts (FR-14)
-- Product categories & criticality-aware escalation (FR-08)
-- Alert fatigue: grouping, cooldown, brief-fluctuation filter, quality report (FR-23)
-
-### AI (Should)
-
-- 15/30/60-min excursion forecast with confidence (FR-30)
-- Failure-risk score 0–100 (FR-31)
-- Ranked root-cause with technician confirm/reject feedback loop (FR-32)
-- Energy/performance insights (FR-33); fleet benchmarking (FR-34)
-
-### Platform
-
-- Webhooks with signed payloads + retry (FR-39)
-- Compliance export + scheduled reports (FR-36)
-- Maintenance reports / MTBF-MTTR where data allows (FR-37)
-- Full REST surface for assets, telemetry, incidents, reports (FR-38)
-- Horizontal scale soak test toward 10k devices / 1k concurrent users (NFR-02/06/38)
-- Swahili i18n prep (NFR-29) if capacity allows
-
-### Exit criteria
-
-- [ ] Demo script covers pharmacy, lab, and food cold-room personas
-- [ ] Webhook + compliance export verified with a test consumer
-- [ ] Forecast/risk features off-switchable; explanations shown
-- [ ] Performance soak meets agreed staging SLOs
-
-### SRS coverage
-
-FR-08, FR-10, FR-13–14, FR-23, FR-30–34, FR-36–39, NFR-02/06/29/38/40, §10.3–10.4
-
----
-
-## Phase 7 — Production readiness, UAT, launch
-
-**Objective:** Prove the system with real facilities and operable production.
-
-### Testing (§12)
-
-- Unit: thresholds, incident states, RBAC, retention
-- Integration: MQTT, ingestion, SMS/email/WhatsApp, buffer replay, reports
-- Hardware lab: ±0.5°C accuracy, door latency &lt;2s, power detect &lt;5s, GSM weak-signal, battery duration, enclosure, OTA rollback
-- UAT in ≥3 facility types: pharmacy, diagnostic lab, food cold-room operator
-  - Door left open; 10-min power cut; abnormal compressor; sensor disconnect; unacked critical; cross-tenant access denied; export report; offline then reconnect
-
-### Deployment (§13)
-
-- Containerized services + IaC
-- Blue-green or rolling backend deploys; staged firmware: lab → pilot → fleet
-- Backups: daily + PITR; RTO 4h / RPO 15m; restore drill
-- Observability: uptime, ingestion latency, alert latency, device connectivity, errors (NFR-36)
-- Runbooks for outage, mass offline, alert storm, credential rotation
-
-### Exit criteria
-
-- [ ] §11.1, §11.2, §11.3 acceptance signed off
-- [ ] UAT defects for Must-haves closed or waived in writing
-- [ ] Production backup restore tested
-- [ ] Pilot customer devices live with monitoring + escalation
-
----
-
-## Cross-cutting workstreams (all phases)
-
-| Stream | Ongoing work |
+| Phase | Outcome |
 | --- | --- |
-| **Hardware** | Sensor placement guide, calibration records, install checklist, spare policy |
-| **Security** | Threat model updates, dependency scanning, pen-test before launch |
-| **Data protection** | Kenya DPA notices, DPAs with SMS/email vendors, retention jobs |
-| **Alert quality** | Tune defaults; track false-positive rate (risk §14) |
-| **Docs** | Installer guide, operator playbook, API docs, disclaimer that ColdGuard is decision support |
+| 0 | Compose up; login works; roles exist |
+| 1 | Lab ESP32 data lands in the database |
+| 2 | Live + 24h charts for one fridge |
+| 3 | High-temp (or leak) → incident → ack → resolve |
+| 4 | Wi-Fi down → GSM SMS; buffer + email; demo script solid |
 
 ---
 
-## MVP definition of done (ship gate)
+## Phase 0 — Skeleton and auth
 
-Taken from SRS §11.1 — do not call MVP “done” until all are true:
+**Do**
 
-1. Device provisioned and paired to an asset  
-2. Reports temperature, door, power, device health  
-3. Dashboard shows live + historical readings  
-4. Excursion → alert + incident  
-5. User can acknowledge and resolve  
-6. Downloadable excursion report  
-7. Buffers during simulated internet outage  
-8. SMS when internet unavailable  
-9. Operates through short power interruption  
-10. Admins configure thresholds and recipients  
+- Repo layout: `firmware/`, `backend/`, `web/`, `infra/`
+- `docker-compose`: PostgreSQL, Mosquitto, backend, (optional Redis later)
+- FastAPI: health, config from env, structured logs
+- Schema: User, Asset, Device, Telemetry, Incident
+- Seed users: one Admin, one Operator, one Technician
+- Login + JWT (or session); role middleware
+- React app: login shell + empty home
 
-AI (§11.2) and full security (§11.3) should be complete by end of Phase 5 and Phase 4 respectively, before pilot expansion.
+**Exit**
+
+- [ ] Compose starts in one command
+- [ ] Each role can log in; protected `/me` returns role
+- [ ] Operator cannot hit Admin-only routes
+
+**SRS:** FR-01, FR-02, NFR-03–05
 
 ---
 
-## Suggested team swimlanes
+## Phase 1 — Edge + ingestion
 
-| Role | Primary phases |
+**Firmware**
+
+- Read DHT11 (temp/humidity), BMP180 (temp/pressure), water AO, ACS712 OUT
+- Optional: MQ-3 raw (no alert rules yet)
+- Sample every 60s (configurable)
+- Publish MQTT JSON matching SRS §7
+- Status topic: online heartbeat / firmware version
+- Pin map from SRS §3; document calibration for ACS712 zero-current
+
+**Backend**
+
+- MQTT subscriber → validate → insert telemetry + update device `last_seen`
+- Reject or flag nonsense values (e.g. temp &lt; -40 or &gt; 80)
+
+**Exit**
+
+- [ ] Serial + MQTT show all core sensors
+- [ ] Rows appear in DB; device shows last-seen
+- [ ] Wi-Fi connected lab demo works end-to-end for ingest
+
+**SRS:** FR-05–12, FR-17 (backend side)
+
+---
+
+## Phase 2 — Registry and dashboard
+
+**Backend**
+
+- Admin CRUD for assets (name, type, location, temp min/max)
+- Link device ↔ asset
+- APIs: latest reading, range query, simple aggregates (min/max/avg)
+
+**Frontend**
+
+- Asset list + detail
+- Live metrics: temp, humidity, pressure, current, water
+- 24h chart
+- Online/offline badge from last-seen
+
+**Exit**
+
+- [ ] Admin creates asset and attaches device
+- [ ] Operator sees live data without Admin menus
+- [ ] Technician can open history (read-only)
+
+**SRS:** FR-04–06, FR-15–17, FR-23, NFR-01–02
+
+---
+
+## Phase 3 — Alerts and incidents (core demo)
+
+**Rules**
+
+- Temperature warning/critical with short duration gate (e.g. 1–2 minutes)
+- Optional: water wet → incident; current near-zero while “should cool” as simple heuristic
+- Auto-create incident; avoid duplicates for same open event
+
+**UX**
+
+- In-app alert list
+- Operator: acknowledge → resolve with note
+- Suggested actions text (check seal / leak / compressor power)
+- Technician: view incidents + optional maintenance note
+
+**Exit**
+
+- [ ] Heat DHT11 or raise threshold → incident appears
+- [ ] Wet water probe → leak incident (if enabled)
+- [ ] Operator ack + resolve works; Admin sees all
+
+**SRS:** FR-18–21, FR-24, §9 acceptance items 3–5
+
+---
+
+## Phase 4 — Resilience, GSM SMS, email
+
+**Firmware / SIM800L**
+
+- Power SIM800L from external 3.7–4.2V ≥2A + bulk cap; common GND; UART on GPIO 16/17 (`Serial2`)
+- AT smoke test: `AT`, `AT+CSQ`, `AT+CREG?`, then `AT+CMGF=1` + `AT+CMGS="..."` SMS send
+- On critical local threshold while MQTT/Wi-Fi is down → send short SMS (FR-14a)
+- Admin-configured recipient number(s) in firmware config or from last cloud config (FR-14b)
+- Rate-limit SMS (e.g. one per critical event / cooldown)
+- Firmware ring buffer for short Wi-Fi loss; chronological replay (FR-14)
+
+**Backend / notify**
+
+- Email on new critical incident when cloud path is up
+- Dashboard still shows offline from last-seen when Wi-Fi dies
+
+**Docs**
+
+- Wire diagram: SIM800L power/UART, antenna, SIM; pin map; demo script
+
+**Exit**
+
+- [ ] Kill Wi-Fi → device goes offline in UI; buffer replays on reconnect
+- [ ] Critical condition with Wi-Fi off → GSM SMS received on test phone
+- [ ] Email fires when cloud path is available
+- [ ] Full §9 acceptance checklist green (including item 7)
+
+**SRS:** FR-14, FR-14a, FR-14b, FR-22, NFR-05, §9
+
+---
+
+## Explicitly deferred
+
+| Item | Why |
 | --- | --- |
-| Firmware / hardware | 1, 4, 7 (lab) |
-| Backend / data | 0–6 |
-| Frontend | 2, 3, 5–6 |
-| ML / analytics | 5–6 |
-| DevOps / security | 0, 4, 7 |
-| Product / QA / field | 3, 6, 7 |
+| Door, voltage, battery, OTA | Hardware not in kit / too heavy |
+| Multi-tenant, MFA, compliance PDF | Too heavy for prototype |
+| AI anomaly / forecasting | Thresholds only |
+| WhatsApp, webhooks, fleet benchmarking | Post-prototype |
+| Cloud SMS (Twilio / Africa’s Talking) | Edge GSM covers offline demo |
+| MQ-3 alerting | Sensor optional; noisy for MVP |
 
 ---
 
-## Risk checkpoints (from SRS §14)
+## Suggested order of work (hackathon)
 
-| When | Check |
-| --- | --- |
-| End of Phase 3 | Alert volume in lab; add cooldowns early if noisy |
-| End of Phase 4 | Offline/SMS cost model validated |
-| End of Phase 5 | AI explanations reviewed by non-technical operators |
-| Before Phase 7 pilot | Legal disclaimer + retention policies live |
-| Ongoing | Installation quality audits to avoid bad sensor placement |
+1. Wire ESP32 + DHT11 + BMP180 first; Serial print.
+2. Add water + ACS712; then MQTT publish.
+3. Backend ingest + one HTML/React live page.
+4. Auth + three roles + asset link.
+5. Threshold → incident → ack/resolve.
+6. SIM800L AT/SMS smoke test; then Wi-Fi-down critical SMS + buffer + email.
 
 ---
 
-## Out of scope until after commercial release
+## Definition of done
 
-- Custom roles (FR-03 later release)
-- Multi-region deployment (NFR-39)
-- Energy optimizer as a full product (FR-33/§9 Could)
-- Swahili as launch-blocking (NFR-29 Should)
-- Features listed under Future Enhancements if re-added to SRS
+Matches SRS §9:
+
+1. ESP32 publishes DHT11, BMP180, ACS712, water over MQTT  
+2. Dashboard: live + 24h history  
+3. Admin thresholds + device↔asset link  
+4. Excursion/leak → incident; Operator ack/resolve  
+5. Roles enforced on a short demo  
+6. Documented local run path  
+7. Critical GSM SMS when Wi-Fi is down  
 
 ---
 
@@ -396,4 +210,6 @@ AI (§11.2) and full security (§11.3) should be complete by end of Phase 5 and 
 
 | Version | Date | Notes |
 | --- | --- | --- |
-| 1.0 | 11 November 2026 | Initial phased plan derived from SRS v1.0 |
+| 1.0 | 11 Nov 2026 | Full commercial phased plan |
+| 2.0 | 12 Nov 2026 | Cut to prototype; aligned with actual sensor kit and 3 roles |
+| 2.1 | 12 Nov 2026 | Added SIM800L: offline critical SMS in Phase 4 / SRS v2.1 |
