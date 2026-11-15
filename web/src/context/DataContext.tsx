@@ -27,6 +27,7 @@ interface DataState {
   notes: MaintenanceNote[]
   users: User[]
   ready: boolean
+  connected: boolean
   getTelemetry: (deviceId: string) => TelemetryReading[]
   getLatest: (deviceId: string) => TelemetryReading | null
   upsertAsset: (asset: Asset) => Promise<void>
@@ -70,6 +71,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>([])
   const [telemetry, setTelemetry] = useState<Record<string, TelemetryReading[]>>({})
   const [ready, setReady] = useState(false)
+  const [connected, setConnected] = useState(false)
 
   const assetsRef = useRef<Asset[]>([])
   useEffect(() => {
@@ -166,7 +168,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const run = async (full: boolean) => {
       try {
         await refresh(full)
+        setConnected(true)
       } catch {
+        setConnected(false)
         // 401 already cleared the token; auth context will redirect
       } finally {
         if (!cancelled) setReady(true)
@@ -333,6 +337,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       notes,
       users,
       ready,
+      connected,
       getTelemetry,
       getLatest,
       upsertAsset,
@@ -350,6 +355,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       notes,
       users,
       ready,
+      connected,
       getTelemetry,
       getLatest,
       upsertAsset,

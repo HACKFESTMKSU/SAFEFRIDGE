@@ -75,7 +75,7 @@ services:
       MQTT_PORT: "1883"
       # MQTT_USERNAME: ${MQTT_USERNAME:-}
       # MQTT_PASSWORD: ${MQTT_PASSWORD:-}
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+      JWT_SECRET: ${JWT_SECRET:-coldguard-dev-secret-change-in-production-0123456789}
     ports:
       - "8000:8000"
     depends_on:

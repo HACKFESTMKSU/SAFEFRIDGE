@@ -35,7 +35,7 @@ const titles: Record<string, string> = {
 
 export function AppShell() {
   const { user, logout } = useAuth()
-  const { incidents } = useData()
+  const { incidents, connected } = useData()
   const location = useLocation()
   const [open, setOpen] = useState(false)
 
@@ -120,8 +120,8 @@ export function AppShell() {
             <h1>{pathTitle}</h1>
           </div>
           <div className="topbar-actions">
-            <span className="badge brand">
-              <Activity size={12} /> Live demo data
+            <span className={`badge ${connected ? 'ok' : 'crit'}`}>
+              <Activity size={12} /> {connected ? 'API connected' : 'API unreachable'}
             </span>
           </div>
         </header>

@@ -29,7 +29,9 @@ class Settings:
         "DATABASE_URL", f"sqlite:///{BASE_DIR / 'coldguard.db'}"
     )
 
-    JWT_SECRET: str = _get("JWT_SECRET", "change-me-in-production")
+    JWT_SECRET: str = _get(
+        "JWT_SECRET", "coldguard-dev-secret-change-in-production-0123456789"
+    )
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = _get_int("JWT_EXPIRE_MINUTES", 480)
 
