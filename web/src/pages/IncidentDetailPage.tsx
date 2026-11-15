@@ -43,16 +43,16 @@ export function IncidentDetailPage() {
   const linkedNotes = notes.filter((n) => n.incidentId === incident.id)
   const canAct = canAckResolve(user.role)
 
-  async function onResolve(e: FormEvent) {
+  function onResolve(e: FormEvent) {
     e.preventDefault()
     if (!resolveNote.trim()) return
-    await resolveIncident(incident!.id, resolveNote.trim())
+    resolveIncident(incident!.id, resolveNote.trim())
   }
 
-  async function onTechNote(e: FormEvent) {
+  function onTechNote(e: FormEvent) {
     e.preventDefault()
     if (!techNote.trim()) return
-    await addNote(incident!.assetId, techNote.trim(), incident!.id)
+    addNote(incident!.assetId, techNote.trim(), incident!.id)
     setTechNote('')
   }
 
@@ -159,7 +159,7 @@ export function IncidentDetailPage() {
             <button
               className="btn"
               style={{ marginBottom: '0.85rem' }}
-              onClick={() => void acknowledgeIncident(incident.id)}
+              onClick={() => acknowledgeIncident(incident.id)}
             >
               <CheckCircle2 size={16} /> Acknowledge
             </button>

@@ -1,28 +1,23 @@
 import { format, formatDistanceToNow, parseISO } from 'date-fns'
 import type { AssetType, IncidentSeverity, IncidentStatus, Role } from '../types'
 
-export function fmtTemp(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return '—'
+export function fmtTemp(v: number) {
   return `${v.toFixed(1)}°C`
 }
 
-export function fmtPct(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return '—'
+export function fmtPct(v: number) {
   return `${Math.round(v)}%`
 }
 
-export function fmtAmps(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return '—'
+export function fmtAmps(v: number) {
   return `${v.toFixed(2)} A`
 }
 
-export function fmtPressure(v: number | null | undefined) {
-  if (v == null || Number.isNaN(v)) return '—'
+export function fmtPressure(v: number) {
   return `${v.toFixed(1)} hPa`
 }
 
-export function fmtWhen(iso: string | null | undefined) {
-  if (!iso) return '—'
+export function fmtWhen(iso: string) {
   try {
     return format(parseISO(iso), 'dd MMM · HH:mm')
   } catch {
@@ -30,8 +25,7 @@ export function fmtWhen(iso: string | null | undefined) {
   }
 }
 
-export function fmtRelative(iso: string | null | undefined) {
-  if (!iso) return 'Never'
+export function fmtRelative(iso: string) {
   try {
     return formatDistanceToNow(parseISO(iso), { addSuffix: true })
   } catch {

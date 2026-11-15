@@ -32,7 +32,6 @@ export function AssetDetailPage() {
     addNote,
   } = useData()
   const [note, setNote] = useState('')
-  const [busy, setBusy] = useState(false)
 
   const asset = assets.find((a) => a.id === id)
   if (!asset || !user) {
@@ -51,7 +50,7 @@ export function AssetDetailPage() {
   const assetNotes = notes.filter((n) => n.assetId === asset.id)
 
   const tempTone =
-    latest && latest.temperature_c != null
+    latest
       ? latest.temperature_c >= asset.thresholds.tempCriticalC
         ? 'crit'
         : latest.temperature_c >= asset.thresholds.tempWarningC
@@ -59,16 +58,11 @@ export function AssetDetailPage() {
           : 'ok'
       : undefined
 
-  async function onNote(e: FormEvent) {
+  function onNote(e: FormEvent) {
     e.preventDefault()
     if (!note.trim()) return
-    setBusy(true)
-    try {
-      await addNote(asset!.id, note.trim())
-      setNote('')
-    } finally {
-      setBusy(false)
-    }
+    addNote(asset!.id, note.trim())
+    setNote('')
   }
 
   return (
@@ -104,27 +98,22 @@ export function AssetDetailPage() {
       <div className="grid grid-4">
         <MetricTile
           label="Temperature"
-          value={fmtTemp(latest?.temperature_c)}
+          value={latest ? fmtTemp(latest.temperature_c) : '—'}
           hint={`${asset.thresholds.tempMinC}–${asset.thresholds.tempMaxC}°C`}
           tone={tempTone}
         />
         <MetricTile
           label="Humidity"
-          value={fmtPct(latest?.humidity_percent)}
+          value={latest ? fmtPct(latest.humidity_percent) : '—'}
         />
         <MetricTile
           label="Current"
-          value={fmtAmps(latest?.current_a)}
-          hint="Not wired yet"
+          value={latest ? fmtAmps(latest.current_a) : '—'}
         />
         <MetricTile
           label="Water"
-          value={
-            latest?.water_wet == null ? '—' : latest.water_wet ? 'Wet' : 'Dry'
-          }
-          hint={
-            latest?.water_level != null ? `Level ${latest.water_level}` : 'Not wired yet'
-          }
+          value={latest ? (latest.water_wet ? 'Wet' : 'Dry') : '—'}
+          hint={latest ? `Level ${latest.water_level}` : undefined}
           tone={latest?.water_wet ? 'warn' : 'ok'}
         />
       </div>
@@ -142,7 +131,7 @@ export function AssetDetailPage() {
           {series.length ? (
             <TelemetryChart data={series} />
           ) : (
-            <div className="empty">No telemetry series for this asset yet.</div>
+            <div className="empty">No telemetry series for this asset.</div>
           )}
         </section>
 
@@ -153,17 +142,15 @@ export function AssetDetailPage() {
           <div className="grid" style={{ gap: '0.75rem' }}>
             <MetricTile
               label="BMP180 ambient temp"
-              value={fmtTemp(latest?.bmp_temperature_c)}
-              hint="Next phase"
+              value={latest ? fmtTemp(latest.bmp_temperature_c) : '—'}
             />
             <MetricTile
               label="BMP180 pressure"
-              value={fmtPressure(latest?.pressure_hpa)}
-              hint="Next phase"
+              value={latest ? fmtPressure(latest.pressure_hpa) : '—'}
             />
             <MetricTile
               label="MQ-3 (optional)"
-              value={latest?.mq3_raw != null ? String(latest.mq3_raw) : '—'}
+              value={latest ? String(latest.mq3_raw) : '—'}
               hint="Demo only · no alert rule"
             />
             <div className="metric">
@@ -224,7 +211,7 @@ export function AssetDetailPage() {
                   placeholder="Inspection finding, parts replaced…"
                 />
               </div>
-              <button className="btn sm" type="submit" disabled={!note.trim() || busy}>
+              <button className="btn sm" type="submit" disabled={!note.trim()}>
                 Save note
               </button>
             </form>

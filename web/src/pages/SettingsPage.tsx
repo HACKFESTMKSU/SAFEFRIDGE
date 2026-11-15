@@ -1,21 +1,21 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useData } from '../context/DataContext'
 import type { Asset } from '../types'
 
 export function SettingsPage() {
   const { assets, updateThresholds } = useData()
-  const [selectedId, setSelectedId] = useState('')
-  const [tempMin, setTempMin] = useState(2)
-  const [tempMax, setTempMax] = useState(8)
-  const [tempWarn, setTempWarn] = useState(7)
-  const [tempCrit, setTempCrit] = useState(10)
-  const [humidity, setHumidity] = useState(70)
-  const [water, setWater] = useState(500)
-  const [currentMin, setCurrentMin] = useState(0.3)
-  const [sms, setSms] = useState('')
-  const [saved, setSaved] = useState(false)
-
+  const [selectedId, setSelectedId] = useState(assets[0]?.id ?? '')
   const selected = assets.find((a) => a.id === selectedId)
+
+  const [tempMin, setTempMin] = useState(selected?.thresholds.tempMinC ?? 2)
+  const [tempMax, setTempMax] = useState(selected?.thresholds.tempMaxC ?? 8)
+  const [tempWarn, setTempWarn] = useState(selected?.thresholds.tempWarningC ?? 7)
+  const [tempCrit, setTempCrit] = useState(selected?.thresholds.tempCriticalC ?? 10)
+  const [humidity, setHumidity] = useState(selected?.thresholds.humidityMaxPercent ?? 70)
+  const [water, setWater] = useState(selected?.thresholds.waterWetThreshold ?? 500)
+  const [currentMin, setCurrentMin] = useState(selected?.thresholds.currentMinA ?? 0.3)
+  const [sms, setSms] = useState(selected?.smsRecipients.join(', ') ?? '')
+  const [saved, setSaved] = useState(false)
 
   function loadAsset(asset: Asset) {
     setSelectedId(asset.id)
@@ -30,14 +30,10 @@ export function SettingsPage() {
     setSaved(false)
   }
 
-  useEffect(() => {
-    if (!selectedId && assets[0]) loadAsset(assets[0])
-  }, [assets, selectedId])
-
-  async function onSave(e: FormEvent) {
+  function onSave(e: FormEvent) {
     e.preventDefault()
     if (!selected) return
-    await updateThresholds(
+    updateThresholds(
       selected.id,
       {
         tempMinC: tempMin,
@@ -149,7 +145,7 @@ export function SettingsPage() {
                 Save settings
               </button>
               {saved ? (
-                <p style={{ color: 'var(--ok)', fontSize: '0.9rem' }}>Saved to the database.</p>
+                <p style={{ color: 'var(--ok)', fontSize: '0.9rem' }}>Saved for this demo session.</p>
               ) : null}
             </form>
           ) : (

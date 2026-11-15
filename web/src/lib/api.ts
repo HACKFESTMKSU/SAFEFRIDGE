@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api'
+const BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined) ??
+  'http://localhost:8000/api'
+
 const TOKEN_KEY = 'coldguard.token'
 
 export function getToken(): string | null {
@@ -19,28 +22,37 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
-  const headers = new Headers(options.headers)
-  if (!headers.has('Content-Type') && options.body) {
-    headers.set('Content-Type', 'application/json')
+interface ApiOptions {
+  method?: string
+  body?: unknown
+}
+
+export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
   }
   const token = getToken()
-  if (token) headers.set('Authorization', `Bearer ${token}`)
+  if (token) headers.Authorization = `Bearer ${token}`
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: options.method ?? 'GET',
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  })
+
+  if (res.status === 401) setToken(null)
+
   if (!res.ok) {
-    let detail = res.statusText
+    let message = `Request failed (${res.status})`
     try {
-      const body = await res.json()
-      detail = body.detail ?? JSON.stringify(body)
+      const data = (await res.json()) as { detail?: unknown }
+      if (data?.detail) message = String(data.detail)
     } catch {
-      /* ignore */
+      // non-JSON error body
     }
-    throw new ApiError(res.status, typeof detail === 'string' ? detail : 'Request failed')
+    throw new ApiError(res.status, message)
   }
+
   if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
+  return (await res.json()) as T
 }

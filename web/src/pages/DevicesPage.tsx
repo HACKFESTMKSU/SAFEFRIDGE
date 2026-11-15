@@ -54,7 +54,7 @@ export function DevicesPage() {
                           defaultValue={device.assetId ?? ''}
                           onChange={(e) => {
                             const value = e.target.value || null
-                            void linkDevice(device.id, value)
+                            linkDevice(device.id, value)
                             setLinking(null)
                           }}
                           onBlur={() => setLinking(null)}

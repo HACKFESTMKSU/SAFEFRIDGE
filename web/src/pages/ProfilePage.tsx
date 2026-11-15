@@ -8,16 +8,13 @@ export function ProfilePage() {
   const [phone, setPhone] = useState(user?.phone ?? '')
   const [password, setPassword] = useState('')
   const [saved, setSaved] = useState(false)
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
 
   if (!user) return null
 
   async function onSave(e: FormEvent) {
     e.preventDefault()
-    setBusy(true)
     setError('')
-    setSaved(false)
     try {
       await updateProfile({
         name,
@@ -27,9 +24,7 @@ export function ProfilePage() {
       setPassword('')
       setSaved(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save')
-    } finally {
-      setBusy(false)
+      setError(err instanceof Error ? err.message : 'Save failed')
     }
   }
 
@@ -69,10 +64,10 @@ export function ProfilePage() {
               placeholder="Leave blank to keep current"
             />
           </div>
-          {error ? <p className="error-text">{error}</p> : null}
-          <button className="btn" type="submit" disabled={busy}>
-            {busy ? 'Saving…' : 'Save profile'}
+          <button className="btn" type="submit">
+            Save profile
           </button>
+          {error ? <p className="error-text">{error}</p> : null}
           {saved ? (
             <p style={{ color: 'var(--ok)', fontSize: '0.9rem' }}>Profile updated.</p>
           ) : null}

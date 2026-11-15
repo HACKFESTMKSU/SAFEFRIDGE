@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -25,32 +26,41 @@ interface DataState {
   incidents: Incident[]
   notes: MaintenanceNote[]
   users: User[]
-  loading: boolean
-  refresh: () => Promise<void>
+  ready: boolean
+  connected: boolean
   getTelemetry: (deviceId: string) => TelemetryReading[]
   getLatest: (deviceId: string) => TelemetryReading | null
-  upsertAsset: (input: {
-    name: string
-    type: Asset['type']
-    location: string
-    thresholds: Thresholds
-  }) => Promise<void>
+  upsertAsset: (asset: Asset) => Promise<void>
   linkDevice: (deviceId: string, assetId: string | null) => Promise<void>
   updateThresholds: (assetId: string, thresholds: Thresholds, sms: string[]) => Promise<void>
   acknowledgeIncident: (id: string) => Promise<void>
   resolveIncident: (id: string, note: string) => Promise<void>
   addNote: (assetId: string, body: string, incidentId?: string) => Promise<void>
-  upsertUser: (input: {
-    name: string
-    email: string
-    phone: string
-    role: User['role']
-    password: string
-  }) => Promise<void>
+  upsertUser: (user: User) => Promise<void>
 }
 
 const DataContext = createContext<DataState | null>(null)
-const POLL_MS = 5000
+
+const POLL_META_MS = 15_000
+const POLL_FULL_MS = 60_000
+
+function normDevice(d: Device): Device {
+  return { ...d, lastSeen: d.lastSeen ?? new Date(0).toISOString() }
+}
+
+function normReading(r: TelemetryReading): TelemetryReading {
+  return {
+    ...r,
+    temperature_c: r.temperature_c ?? 0,
+    humidity_percent: r.humidity_percent ?? 0,
+    bmp_temperature_c: r.bmp_temperature_c ?? 0,
+    pressure_hpa: r.pressure_hpa ?? 0,
+    current_a: r.current_a ?? 0,
+    water_level: r.water_level ?? 0,
+    water_wet: r.water_wet ?? false,
+    mq3_raw: r.mq3_raw ?? 0,
+  }
+}
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth()
@@ -60,60 +70,120 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [notes, setNotes] = useState<MaintenanceNote[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [telemetry, setTelemetry] = useState<Record<string, TelemetryReading[]>>({})
-  const [loading, setLoading] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [connected, setConnected] = useState(false)
 
-  const loadTelemetry = useCallback(async (deviceList: Device[]) => {
-    const entries = await Promise.all(
-      deviceList.map(async (d) => {
-        try {
-          const series = await api<TelemetryReading[]>(`/telemetry/${d.id}?hours=24`)
-          return [d.id, series] as const
-        } catch {
-          return [d.id, [] as TelemetryReading[]] as const
-        }
-      }),
+  const assetsRef = useRef<Asset[]>([])
+  useEffect(() => {
+    assetsRef.current = assets
+  }, [assets])
+
+  const loadNotes = useCallback(async (assetList: Asset[]) => {
+    const lists = await Promise.all(
+      assetList.map((a) =>
+        api<MaintenanceNote[]>(`/assets/${a.id}/notes`).catch(
+          () => [] as MaintenanceNote[],
+        ),
+      ),
     )
-    setTelemetry(Object.fromEntries(entries))
+    const merged = new Map<string, MaintenanceNote>()
+    for (const n of lists.flat()) merged.set(n.id, n)
+    setNotes([...merged.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)))
   }, [])
 
-  const refresh = useCallback(async () => {
-    if (!user) return
-    setLoading(true)
-    try {
-      const [nextAssets, nextDevices, nextIncidents, nextNotes] = await Promise.all([
-        api<Asset[]>('/assets'),
-        api<Device[]>('/devices'),
-        api<Incident[]>('/incidents'),
-        api<MaintenanceNote[]>('/notes'),
-      ])
-      setAssets(nextAssets)
-      setDevices(nextDevices)
-      setIncidents(nextIncidents)
-      setNotes(nextNotes)
-      await loadTelemetry(nextDevices)
+  const loadTelemetrySeries = useCallback(async (deviceList: Device[]) => {
+    const results = await Promise.all(
+      deviceList.map((d) =>
+        api<TelemetryReading[]>(`/telemetry/${d.id}?hours=24`)
+          .then((rows) => rows.map(normReading))
+          .catch(() => [] as TelemetryReading[]),
+      ),
+    )
+    setTelemetry(
+      Object.fromEntries(deviceList.map((d, i) => [d.id, results[i]])),
+    )
+  }, [])
 
-      const nextUsers = await api<User[]>('/users')
-      setUsers(nextUsers)
-    } finally {
-      setLoading(false)
+  const loadTelemetryLatest = useCallback(async (deviceList: Device[]) => {
+    const results = await Promise.all(
+      deviceList.map((d) =>
+        api<TelemetryReading | null>(`/telemetry/${d.id}/latest`)
+          .then((r) => (r ? normReading(r) : null))
+          .catch(() => null),
+      ),
+    )
+    setTelemetry((prev) => {
+      const next = { ...prev }
+      deviceList.forEach((d, i) => {
+        const latest = results[i]
+        if (!latest) return
+        const series = next[d.id] ?? []
+        const last = series[series.length - 1]
+        if (!last || latest.timestamp > last.timestamp) {
+          next[d.id] = [...series, latest]
+        } else if (last && latest.timestamp === last.timestamp) {
+          next[d.id] = [...series.slice(0, -1), latest]
+        }
+      })
+      return next
+    })
+  }, [])
+
+  const loadCore = useCallback(async () => {
+    const [a, d, i] = await Promise.all([
+      api<Asset[]>('/assets'),
+      api<Device[]>('/devices'),
+      api<Incident[]>('/incidents'),
+    ])
+    setAssets(a)
+    const normDevices = d.map(normDevice)
+    setDevices(normDevices)
+    setIncidents(i)
+    if (user?.role === 'admin') {
+      try {
+        setUsers(await api<User[]>('/users'))
+      } catch {
+        setUsers([])
+      }
     }
-  }, [user, loadTelemetry])
+    return { assets: a, devices: normDevices, incidents: i }
+  }, [user?.role])
+
+  const refresh = useCallback(
+    async (full: boolean) => {
+      const core = await loadCore()
+      await loadNotes(core.assets)
+      if (full) await loadTelemetrySeries(core.devices)
+      else await loadTelemetryLatest(core.devices)
+    },
+    [loadCore, loadNotes, loadTelemetrySeries, loadTelemetryLatest],
+  )
 
   useEffect(() => {
     if (!user) {
-      setAssets([])
-      setDevices([])
-      setIncidents([])
-      setNotes([])
-      setUsers([])
-      setTelemetry({})
+      setReady(true)
       return
     }
-    void refresh()
-    const id = window.setInterval(() => {
-      void refresh()
-    }, POLL_MS)
-    return () => window.clearInterval(id)
+    let cancelled = false
+    const run = async (full: boolean) => {
+      try {
+        await refresh(full)
+        setConnected(true)
+      } catch {
+        setConnected(false)
+        // 401 already cleared the token; auth context will redirect
+      } finally {
+        if (!cancelled) setReady(true)
+      }
+    }
+    run(true)
+    const metaTimer = setInterval(() => run(false), POLL_META_MS)
+    const fullTimer = setInterval(() => run(true), POLL_FULL_MS)
+    return () => {
+      cancelled = true
+      clearInterval(metaTimer)
+      clearInterval(fullTimer)
+    }
   }, [user, refresh])
 
   const getTelemetry = useCallback(
@@ -130,95 +200,134 @@ export function DataProvider({ children }: { children: ReactNode }) {
   )
 
   const upsertAsset = useCallback(
-    async (input: {
-      name: string
-      type: Asset['type']
-      location: string
-      thresholds: Thresholds
-    }) => {
-      await api<Asset>('/assets', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: input.name,
-          type: input.type,
-          location: input.location,
-          thresholds: input.thresholds,
-          smsRecipients: [],
-        }),
-      })
-      await refresh()
+    async (asset: Asset) => {
+      try {
+        if (assetsRef.current.some((a) => a.id === asset.id)) {
+          const updated = await api<Asset>(`/assets/${asset.id}/thresholds`, {
+            method: 'PATCH',
+            body: { ...asset.thresholds, smsRecipients: asset.smsRecipients },
+          })
+          setAssets((prev) => prev.map((a) => (a.id === asset.id ? updated : a)))
+        } else {
+          const created = await api<Asset>('/assets', { method: 'POST', body: asset })
+          setAssets((prev) => [...prev, created])
+        }
+      } catch (err) {
+        console.error('upsertAsset failed', err)
+      }
     },
-    [refresh],
+    [],
   )
 
   const linkDevice = useCallback(
     async (deviceId: string, assetId: string | null) => {
-      await api(`/devices/${deviceId}/link`, {
-        method: 'PATCH',
-        body: JSON.stringify({ assetId }),
-      })
-      await refresh()
+      try {
+        if (assetId) {
+          await api(`/assets/${assetId}/link-device`, {
+            method: 'POST',
+            body: { deviceId },
+          })
+        } else {
+          const asset = assetsRef.current.find((a) => a.deviceId === deviceId)
+          if (asset) {
+            await api(`/assets/${asset.id}/link-device`, { method: 'DELETE' })
+          }
+        }
+        await refresh(false)
+      } catch (err) {
+        console.error('linkDevice failed', err)
+      }
     },
     [refresh],
   )
 
   const updateThresholds = useCallback(
     async (assetId: string, thresholds: Thresholds, sms: string[]) => {
-      await api(`/assets/${assetId}/thresholds`, {
-        method: 'PATCH',
-        body: JSON.stringify({ thresholds, smsRecipients: sms }),
-      })
-      await refresh()
+      try {
+        const updated = await api<Asset>(`/assets/${assetId}/thresholds`, {
+          method: 'PATCH',
+          body: { ...thresholds, smsRecipients: sms },
+        })
+        setAssets((prev) => prev.map((a) => (a.id === assetId ? updated : a)))
+      } catch (err) {
+        console.error('updateThresholds failed', err)
+      }
     },
-    [refresh],
+    [],
   )
 
-  const acknowledgeIncident = useCallback(
-    async (id: string) => {
-      await api(`/incidents/${id}/acknowledge`, { method: 'POST' })
-      await refresh()
-    },
-    [refresh],
-  )
-
-  const resolveIncident = useCallback(
-    async (id: string, note: string) => {
-      await api(`/incidents/${id}/resolve`, {
+  const acknowledgeIncident = useCallback(async (id: string) => {
+    try {
+      const updated = await api<Incident>(`/incidents/${id}/acknowledge`, {
         method: 'POST',
-        body: JSON.stringify({ note }),
       })
-      await refresh()
-    },
-    [refresh],
-  )
+      setIncidents((prev) => prev.map((i) => (i.id === id ? updated : i)))
+    } catch (err) {
+      console.error('acknowledgeIncident failed', err)
+    }
+  }, [])
+
+  const resolveIncident = useCallback(async (id: string, note: string) => {
+    try {
+      const updated = await api<Incident>(`/incidents/${id}/resolve`, {
+        method: 'POST',
+        body: { note },
+      })
+      setIncidents((prev) => prev.map((i) => (i.id === id ? updated : i)))
+    } catch (err) {
+      console.error('resolveIncident failed', err)
+    }
+  }, [])
 
   const addNote = useCallback(
     async (assetId: string, body: string, incidentId?: string) => {
-      await api('/notes', {
-        method: 'POST',
-        body: JSON.stringify({ assetId, body, incidentId }),
-      })
-      await refresh()
+      try {
+        const note = await api<MaintenanceNote>(`/assets/${assetId}/notes`, {
+          method: 'POST',
+          body: { body, ...(incidentId ? { incidentId } : {}) },
+        })
+        setNotes((prev) => [note, ...prev])
+      } catch (err) {
+        console.error('addNote failed', err)
+      }
     },
-    [refresh],
+    [],
   )
 
-  const upsertUser = useCallback(
-    async (input: {
-      name: string
-      email: string
-      phone: string
-      role: User['role']
-      password: string
-    }) => {
-      await api('/users', {
-        method: 'POST',
-        body: JSON.stringify(input),
+  const upsertUser = useCallback(async (next: User) => {
+    try {
+      const exists = users.some((u) => u.id === next.id)
+      const updated = exists
+        ? await api<User>(`/users/${next.id}`, {
+            method: 'PATCH',
+            body: {
+              name: next.name,
+              phone: next.phone,
+              role: next.role,
+              ...(next.password ? { password: next.password } : {}),
+            },
+          })
+        : await api<User>('/users', {
+            method: 'POST',
+            body: {
+              email: next.email,
+              name: next.name,
+              phone: next.phone,
+              role: next.role,
+              password: next.password,
+            },
+          })
+      setUsers((prev) => {
+        const i = prev.findIndex((u) => u.id === updated.id)
+        if (i < 0) return [...prev, updated]
+        const copy = [...prev]
+        copy[i] = updated
+        return copy
       })
-      await refresh()
-    },
-    [refresh],
-  )
+    } catch (err) {
+      console.error('upsertUser failed', err)
+    }
+  }, [users])
 
   const value = useMemo(
     () => ({
@@ -227,8 +336,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       incidents,
       notes,
       users,
-      loading,
-      refresh,
+      ready,
+      connected,
       getTelemetry,
       getLatest,
       upsertAsset,
@@ -245,8 +354,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       incidents,
       notes,
       users,
-      loading,
-      refresh,
+      ready,
+      connected,
       getTelemetry,
       getLatest,
       upsertAsset,
@@ -258,6 +367,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       upsertUser,
     ],
   )
+
+  if (user && !ready) {
+    return (
+      <DataContext.Provider value={value}>
+        <div className="login-page">
+          <div className="empty">Loading ColdGuard…</div>
+        </div>
+      </DataContext.Provider>
+    )
+  }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
 }

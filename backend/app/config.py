@@ -1,31 +1,59 @@
-from functools import lru_cache
+"""Environment-based settings. All values can be overridden via .env or real env vars."""
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
+from pathlib import Path
 
+from dotenv import load_dotenv
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-
-    app_name: str = "ColdGuard API"
-    database_url: str = "postgresql+psycopg2://coldguard:coldguard@localhost:15432/coldguard"
-    jwt_secret: str = "coldguard-dev-secret-change-me"
-    jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60 * 12
-    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
-    mqtt_host: str = "localhost"
-    mqtt_port: int = 1883
-    mqtt_username: str = ""
-    mqtt_password: str = ""
-    mqtt_telemetry_topic: str = "coldguard/device/+/telemetry"
-    mqtt_status_topic: str = "coldguard/device/+/status"
-    device_online_seconds: int = 120
-    seed_on_startup: bool = True
-
-    @property
-    def cors_origin_list(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
-@lru_cache
-def get_settings() -> Settings:
-    return Settings()
+def _get(key: str, default: str = "") -> str:
+    return os.environ.get(key, default)
+
+
+def _get_bool(key: str, default: bool) -> bool:
+    return _get(key, "true" if default else "false").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _get_int(key: str, default: int) -> int:
+    try:
+        return int(_get(key, str(default)))
+    except ValueError:
+        return default
+
+
+class Settings:
+    DATABASE_URL: str = _get(
+        "DATABASE_URL", f"sqlite:///{BASE_DIR / 'coldguard.db'}"
+    )
+
+    JWT_SECRET: str = _get(
+        "JWT_SECRET", "coldguard-dev-secret-change-in-production-0123456789"
+    )
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = _get_int("JWT_EXPIRE_MINUTES", 480)
+
+    MQTT_ENABLED: bool = _get_bool("MQTT_ENABLED", True)
+    MQTT_HOST: str = _get("MQTT_HOST", "localhost")
+    MQTT_PORT: int = _get_int("MQTT_PORT", 1883)
+    MQTT_USERNAME: str = _get("MQTT_USERNAME")
+    MQTT_PASSWORD: str = _get("MQTT_PASSWORD")
+
+    RULE_CONSECUTIVE_BREACHES: int = _get_int("RULE_CONSECUTIVE_BREACHES", 2)
+    RULE_BREACH_WINDOW_SECONDS: int = _get_int("RULE_BREACH_WINDOW_SECONDS", 600)
+    DEVICE_OFFLINE_SECONDS: int = _get_int("DEVICE_OFFLINE_SECONDS", 300)
+
+    SMTP_HOST: str = _get("SMTP_HOST")
+    SMTP_PORT: int = _get_int("SMTP_PORT", 587)
+    SMTP_USERNAME: str = _get("SMTP_USERNAME")
+    SMTP_PASSWORD: str = _get("SMTP_PASSWORD")
+    SMTP_FROM: str = _get("SMTP_FROM", "coldguard@localhost")
+    SMTP_USE_TLS: bool = _get_bool("SMTP_USE_TLS", True)
+    NOTIFY_EMAILS: str = _get(
+        "NOTIFY_EMAILS", "operator@coldguard.local,admin@coldguard.local"
+    )
+
+
+settings = Settings()

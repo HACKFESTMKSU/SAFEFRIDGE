@@ -4,19 +4,19 @@ import { Snowflake } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const demos = [
-  { email: 'admin@coldguard.app', password: 'admin123', label: 'Admin' },
-  { email: 'operator@coldguard.app', password: 'operator123', label: 'Operator' },
-  { email: 'tech@coldguard.app', password: 'tech123', label: 'Technician' },
+  { email: 'admin@coldguard.local', password: 'admin123', label: 'Admin' },
+  { email: 'operator@coldguard.local', password: 'operator123', label: 'Operator' },
+  { email: 'tech@coldguard.local', password: 'tech123', label: 'Technician' },
 ]
 
 export function LoginPage() {
-  const { user, loading, login } = useAuth()
-  const [email, setEmail] = useState('admin@coldguard.app')
+  const { user, login } = useAuth()
+  const [email, setEmail] = useState('admin@coldguard.local')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (!loading && user) return <Navigate to="/" replace />
+  if (user) return <Navigate to="/" replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -64,13 +64,13 @@ export function LoginPage() {
             />
           </div>
           {error ? <p className="error-text">{error}</p> : null}
-          <button className="btn" type="submit" disabled={busy || loading}>
+          <button className="btn" type="submit" disabled={busy}>
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 
         <div className="demo-accounts">
-          <strong style={{ color: 'var(--ink)' }}>Seeded accounts</strong>
+          <strong style={{ color: 'var(--ink)' }}>Demo accounts</strong>
           {demos.map((d) => (
             <div key={d.email}>
               <button

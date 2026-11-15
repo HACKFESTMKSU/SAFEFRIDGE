@@ -12,6 +12,7 @@ import { Badge } from '../components/ui/Badge'
 import { useData } from '../context/DataContext'
 import {
   assetTypeLabel,
+  fmtAmps,
   fmtPct,
   fmtRelative,
   fmtTemp,
@@ -20,16 +21,16 @@ import {
 } from '../lib/format'
 
 export function DashboardPage() {
-  const { assets, devices, incidents, getLatest, loading } = useData()
+  const { assets, devices, incidents, getLatest } = useData()
   const openIncidents = incidents.filter((i) => i.status !== 'resolved')
   const online = devices.filter((d) => d.online).length
 
-  const primary = assets.find((a) => a.deviceId) ?? assets[0]
+  const primary = assets.find((a) => a.deviceId === 'CG-001') ?? assets[0]
   const latest = primary?.deviceId ? getLatest(primary.deviceId) : null
   const device = devices.find((d) => d.id === primary?.deviceId)
 
   const tempTone =
-    latest && primary && latest.temperature_c != null
+    latest && primary
       ? latest.temperature_c >= primary.thresholds.tempCriticalC
         ? 'crit'
         : latest.temperature_c >= primary.thresholds.tempWarningC
@@ -43,8 +44,8 @@ export function DashboardPage() {
         <div>
           <h2 style={{ fontSize: '1.35rem' }}>Operations overview</h2>
           <p>
-            Live DHT11 temperature and humidity from linked ESP32 devices
-            {loading ? ' · refreshing…' : ''}.
+            Live climate, compressor current, and leak status for your cold
+            units — plus open incidents that need attention.
           </p>
         </div>
         <Link className="btn secondary" to="/incidents">
@@ -69,13 +70,13 @@ export function DashboardPage() {
         <MetricTile
           label="Devices online"
           value={`${online}/${devices.length}`}
-          hint="ESP32 MQTT last-seen"
+          hint="ESP32 last-seen heartbeat"
           icon={<Wifi size={15} />}
-          tone={devices.length && online === devices.length ? 'ok' : 'warn'}
+          tone={online === devices.length ? 'ok' : 'warn'}
         />
         <MetricTile
           label="Primary unit"
-          value={fmtTemp(latest?.temperature_c)}
+          value={latest ? fmtTemp(latest.temperature_c) : '—'}
           hint={primary?.name ?? 'No asset'}
           icon={<Thermometer size={15} />}
           tone={tempTone}
@@ -101,9 +102,25 @@ export function DashboardPage() {
                 tone={tempTone}
               />
               <MetricTile
-                label="DHT11 humidity"
+                label="Humidity"
                 value={fmtPct(latest.humidity_percent)}
                 icon={<Droplets size={15} />}
+              />
+              <MetricTile
+                label="ACS712 current"
+                value={fmtAmps(latest.current_a)}
+                hint="Compressor / load proxy"
+              />
+              <MetricTile
+                label="Water sensor"
+                value={latest.water_wet ? 'Wet' : 'Dry'}
+                hint={`Level ${latest.water_level}`}
+                tone={latest.water_wet ? 'warn' : 'ok'}
+              />
+              <MetricTile
+                label="BMP180 pressure"
+                value={`${latest.pressure_hpa.toFixed(1)} hPa`}
+                hint={`Ambient ${fmtTemp(latest.bmp_temperature_c)}`}
               />
               <MetricTile
                 label="Last seen"
@@ -111,18 +128,9 @@ export function DashboardPage() {
                 hint={device?.id}
                 icon={device?.online ? <Wifi size={15} /> : <WifiOff size={15} />}
               />
-              <MetricTile
-                label="Other sensors"
-                value="Soon"
-                hint="BMP180 · ACS712 · water · MQ-3"
-              />
             </div>
           ) : (
-            <div className="empty">
-              {primary
-                ? 'No telemetry yet. Publish DHT11 readings to MQTT or POST /api/telemetry/ingest.'
-                : 'No assets yet. Create an asset and link device CG-001.'}
-            </div>
+            <div className="empty">No telemetry for this asset yet.</div>
           )}
           {primary ? (
             <div style={{ marginTop: '1rem' }}>
@@ -177,51 +185,41 @@ export function DashboardPage() {
                 <th>Type</th>
                 <th>Location</th>
                 <th>Temp</th>
-                <th>Humidity</th>
                 <th>Device</th>
                 <th>Status</th>
               </tr>
             </thead>
             <tbody>
-              {assets.length === 0 ? (
-                <tr>
-                  <td colSpan={7}>
-                    <div className="empty">No assets in the database yet.</div>
-                  </td>
-                </tr>
-              ) : (
-                assets.map((asset) => {
-                  const reading = asset.deviceId ? getLatest(asset.deviceId) : null
-                  const dev = devices.find((d) => d.id === asset.deviceId)
-                  return (
-                    <tr key={asset.id}>
-                      <td>
-                        <Link to={`/assets/${asset.id}`} style={{ fontWeight: 600, color: 'var(--accent-strong)' }}>
-                          {asset.name}
-                        </Link>
-                      </td>
-                      <td>{assetTypeLabel(asset.type)}</td>
-                      <td>{asset.location}</td>
-                      <td className="mono">{fmtTemp(reading?.temperature_c)}</td>
-                      <td className="mono">{fmtPct(reading?.humidity_percent)}</td>
-                      <td>
-                        {dev ? (
-                          <Badge tone={dev.online ? 'ok' : 'neutral'} dot>
-                            {dev.id}
-                          </Badge>
-                        ) : (
-                          <Badge tone="warn">Unlinked</Badge>
-                        )}
-                      </td>
-                      <td>
-                        <Badge tone={asset.status === 'active' ? 'ok' : 'neutral'}>
-                          {asset.status}
+              {assets.map((asset) => {
+                const reading = asset.deviceId ? getLatest(asset.deviceId) : null
+                const dev = devices.find((d) => d.id === asset.deviceId)
+                return (
+                  <tr key={asset.id}>
+                    <td>
+                      <Link to={`/assets/${asset.id}`} style={{ fontWeight: 600, color: 'var(--accent-strong)' }}>
+                        {asset.name}
+                      </Link>
+                    </td>
+                    <td>{assetTypeLabel(asset.type)}</td>
+                    <td>{asset.location}</td>
+                    <td className="mono">{reading ? fmtTemp(reading.temperature_c) : '—'}</td>
+                    <td>
+                      {dev ? (
+                        <Badge tone={dev.online ? 'ok' : 'neutral'} dot>
+                          {dev.id}
                         </Badge>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
+                      ) : (
+                        <Badge tone="warn">Unlinked</Badge>
+                      )}
+                    </td>
+                    <td>
+                      <Badge tone={asset.status === 'active' ? 'ok' : 'neutral'}>
+                        {asset.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -1,29 +1,33 @@
-# ColdGuard Web
+# ColdGuard Web (MVP)
 
-React + Vite frontend for ColdGuard. Talks to the FastAPI backend (no mock telemetry).
+React + Vite frontend for the ColdGuard cold-storage monitoring prototype.
 
 ## Run
 
-Start infra/API first (`cd ../infra && docker compose up --build -d`), then:
-
 ```bash
+cd web
 npm install
 npm run dev
 ```
 
-Optional: set `VITE_API_URL` (default `http://localhost:8000/api`).
+Open the URL Vite prints (usually `http://localhost:5173`).
 
-## Seed logins
+## Demo logins
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@coldguard.app` | `admin123` |
-| Operator | `operator@coldguard.app` | `operator123` |
-| Technician | `tech@coldguard.app` | `tech123` |
+| Admin | `admin@coldguard.local` | `admin123` |
+| Operator | `operator@coldguard.local` | `operator123` |
+| Technician | `tech@coldguard.local` | `tech123` |
 
 ## What’s included
 
-- Login against `/api/auth/login` (JWT)
-- Dashboard + asset detail with live DHT11 temp/humidity (polled every 5s)
-- Assets, devices, users, thresholds via API
-- Incidents and maintenance notes (empty until rules/phase 3)
+- Login + role-gated navigation
+- Dashboard with live metrics (mock ESP32 telemetry)
+- Assets list/detail + 24h charts
+- Incidents: acknowledge / resolve + recommended actions
+- Admin: devices link, users, thresholds & SIM800L SMS recipients
+- Technician: maintenance notes
+- Profile edit
+
+Data is in-memory mock (swap to FastAPI later). No backend required for UI demos.
