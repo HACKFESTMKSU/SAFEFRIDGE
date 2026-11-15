@@ -54,6 +54,7 @@ export function TelemetryChart({ data }: { data: TelemetryReading[] }) {
             stroke="#0f8a7a"
             strokeWidth={2}
             dot={false}
+            connectNulls
           />
           <Line
             yAxisId="hum"
@@ -63,15 +64,7 @@ export function TelemetryChart({ data }: { data: TelemetryReading[] }) {
             stroke="#0b3d4a"
             strokeWidth={2}
             dot={false}
-          />
-          <Line
-            yAxisId="temp"
-            type="monotone"
-            dataKey="current_a"
-            name="Current A"
-            stroke="#b86a12"
-            strokeWidth={1.5}
-            dot={false}
+            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>

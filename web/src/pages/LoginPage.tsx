@@ -4,22 +4,26 @@ import { Snowflake } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const demos = [
-  { email: 'admin@coldguard.local', password: 'admin123', label: 'Admin' },
-  { email: 'operator@coldguard.local', password: 'operator123', label: 'Operator' },
-  { email: 'tech@coldguard.local', password: 'tech123', label: 'Technician' },
+  { email: 'admin@coldguard.app', password: 'admin123', label: 'Admin' },
+  { email: 'operator@coldguard.app', password: 'operator123', label: 'Operator' },
+  { email: 'tech@coldguard.app', password: 'tech123', label: 'Technician' },
 ]
 
 export function LoginPage() {
-  const { user, login } = useAuth()
-  const [email, setEmail] = useState('admin@coldguard.local')
+  const { user, loading, login } = useAuth()
+  const [email, setEmail] = useState('admin@coldguard.app')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  if (user) return <Navigate to="/" replace />
+  if (!loading && user) return <Navigate to="/" replace />
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
-    const result = login(email, password)
+    setBusy(true)
+    setError('')
+    const result = await login(email, password)
+    setBusy(false)
     if (!result.ok) setError(result.error ?? 'Login failed')
   }
 
@@ -60,13 +64,13 @@ export function LoginPage() {
             />
           </div>
           {error ? <p className="error-text">{error}</p> : null}
-          <button className="btn" type="submit">
-            Sign in
+          <button className="btn" type="submit" disabled={busy || loading}>
+            {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 
         <div className="demo-accounts">
-          <strong style={{ color: 'var(--ink)' }}>Demo accounts</strong>
+          <strong style={{ color: 'var(--ink)' }}>Seeded accounts</strong>
           {demos.map((d) => (
             <div key={d.email}>
               <button

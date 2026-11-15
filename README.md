@@ -4,7 +4,7 @@ Cold-storage monitoring prototype: ESP32 sensors → MQTT → dashboard → thre
 
 ## What it does
 
-Monitor a fridge or small cold unit for temperature, humidity, pressure, compressor current, and water leaks. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
+Monitor a fridge or small cold unit for temperature and humidity (DHT11 first), then pressure, compressor current, and water leaks. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
 
 ## Hardware kit
 
@@ -27,13 +27,12 @@ Wiring overview: see [`coldguard-esp32-wiring.jpg`](./coldguard-esp32-wiring.jpg
 
 ```text
 Hackathon_project/
-├── web/                      # React + Vite dashboard (mock data MVP)
-├── firmware/                 # ESP32 firmware (planned)
-├── backend/                  # FastAPI + MQTT ingest (planned)
-├── infra/                    # Docker Compose, Mosquitto, Postgres (planned)
-├── SRS.MD                    # Requirements
-├── IMPLEMENTATION_PLAN.md    # Phased build plan
-└── coldguard-esp32-wiring.jpg
+├── web/                      # React + Vite dashboard (API-backed)
+├── backend/                  # FastAPI + MQTT ingest + Postgres
+├── firmware/                 # ESP32 Arduino examples
+├── infra/                    # Docker Compose (Postgres, Mosquitto, API)
+├── SRS.MD
+└── IMPLEMENTATION_PLAN.md
 ```
 
 ## Roles
@@ -44,9 +43,20 @@ Hackathon_project/
 | Operator | Live assets, alerts, ack/resolve incidents |
 | Technician | History / diagnostics, maintenance notes |
 
-## Quick start (web UI)
+## Quick start
 
-The dashboard currently runs on mock telemetry (no backend required).
+### 1. Infra + API
+
+```bash
+cd infra
+docker compose up --build -d
+```
+
+API: `http://localhost:8000` · docs: `http://localhost:8000/docs`  
+MQTT broker: `localhost:1883`  
+Postgres: `localhost:15432` (user/pass/db: `coldguard`)
+
+### 2. Web UI
 
 ```bash
 cd web
@@ -56,32 +66,54 @@ npm run dev
 
 Open the URL Vite prints (usually `http://localhost:5173`).
 
-### Demo logins
+### Seed logins
 
 | Role | Email | Password |
 | --- | --- | --- |
-| Admin | `admin@coldguard.local` | `admin123` |
-| Operator | `operator@coldguard.local` | `operator123` |
-| Technician | `tech@coldguard.local` | `tech123` |
+| Admin | `admin@coldguard.app` | `admin123` |
+| Operator | `operator@coldguard.app` | `operator123` |
+| Technician | `tech@coldguard.app` | `tech123` |
 
-## Build plan (short)
+Seed also creates device **CG-001** linked to asset **Lab Cold Unit**.
 
-1. Wire ESP32 + DHT11 + BMP180 → Serial  
-2. Add water + ACS712 → MQTT publish  
-3. Backend ingest + live dashboard  
-4. Auth + roles + asset link  
-5. Thresholds → incidents → ack/resolve  
-6. SIM800L SMS when Wi‑Fi is down  
+### 3. Send a DHT11 reading (without ESP32 yet)
 
-Details: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md).
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@coldguard.app","password":"admin123"}' | jq -r .access_token)
 
-## Stack (target)
+curl -s -X POST http://localhost:8000/api/telemetry/ingest \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"device_id":"CG-001","temperature_c":23.9,"humidity_percent":71}'
+```
 
-- **Edge:** ESP32 (PlatformIO / Arduino)
+Or publish MQTT:
+
+```bash
+mosquitto_pub -h localhost -t coldguard/device/CG-001/telemetry \
+  -m '{"device_id":"CG-001","temperature_c":23.9,"humidity_percent":71}'
+```
+
+Refresh the dashboard — temp/humidity should appear on Lab Cold Unit.
+
+### 4. ESP32 firmware
+
+Use [`firmware/dht11_mqtt_example.ino`](./firmware/dht11_mqtt_example.ino): set Wi‑Fi, set `MQTT_HOST` to your PC’s LAN IP, flash, and watch readings land in the UI.
+
+## Current phase
+
+- Frontend uses the live API (no mock telemetry).
+- Backend ingests **DHT11 temperature + humidity** over MQTT (and HTTP ingest for lab tests).
+- BMP180 / ACS712 / water / SMS come in later phases.
+
+## Stack
+
+- **Edge:** ESP32 (Arduino)
 - **Bus:** MQTT (Mosquitto)
 - **API:** FastAPI + PostgreSQL
 - **Web:** React + Vite
-- **Alerts:** In-app, email, GSM SMS fallback
 
 ## Docs
 

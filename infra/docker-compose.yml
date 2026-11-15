@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: coldguard
+      POSTGRES_PASSWORD: coldguard
+      POSTGRES_DB: coldguard
+    # Host port only needed if you run the API outside Docker
+    ports:
+      - "15432:5432"
+    volumes:
+      - coldguard_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coldguard -d coldguard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+
+  backend:
+    build:
+      context: ../backend
+    environment:
+      DATABASE_URL: postgresql+psycopg2://coldguard:coldguard@db:5432/coldguard
+      JWT_SECRET: coldguard-dev-secret-change-me
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+      MQTT_HOST: mosquitto
+      MQTT_PORT: 1883
+      SEED_ON_STARTUP: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+volumes:
+  coldguard_pg:

@@ -2,62 +2,79 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react'
-import { SEED_USERS } from '../data/mock'
+import { api, getToken, setToken } from '../lib/api'
 import type { User } from '../types'
 
 interface AuthState {
   user: User | null
-  login: (email: string, password: string) => { ok: boolean; error?: string }
+  loading: boolean
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>
   logout: () => void
-  updateProfile: (patch: Partial<Pick<User, 'name' | 'phone' | 'password'>>) => void
+  updateProfile: (
+    patch: Partial<Pick<User, 'name' | 'phone'> & { password?: string }>,
+  ) => Promise<void>
 }
 
 const AuthContext = createContext<AuthState | null>(null)
-const STORAGE_KEY = 'coldguard.userId'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const id = localStorage.getItem(STORAGE_KEY)
-    return SEED_USERS.find((u) => u.id === id) ?? null
-  })
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const login = useCallback((email: string, password: string) => {
-    const found = SEED_USERS.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase(),
-    )
-    if (!found || found.password !== password) {
-      return { ok: false, error: 'Invalid email or password' }
+  useEffect(() => {
+    const token = getToken()
+    if (!token) {
+      setLoading(false)
+      return
     }
-    localStorage.setItem(STORAGE_KEY, found.id)
-    setUser(found)
-    return { ok: true }
+    api<User>('/auth/me')
+      .then(setUser)
+      .catch(() => {
+        setToken(null)
+        setUser(null)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  const login = useCallback(async (email: string, password: string) => {
+    try {
+      const res = await api<{ access_token: string; user: User }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
+      setToken(res.access_token)
+      setUser(res.user)
+      return { ok: true }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Login failed'
+      return { ok: false, error: message }
+    }
   }, [])
 
   const logout = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY)
+    setToken(null)
     setUser(null)
   }, [])
 
   const updateProfile = useCallback(
-    (patch: Partial<Pick<User, 'name' | 'phone' | 'password'>>) => {
-      setUser((prev) => {
-        if (!prev) return prev
-        const next = { ...prev, ...patch }
-        const idx = SEED_USERS.findIndex((u) => u.id === prev.id)
-        if (idx >= 0) SEED_USERS[idx] = next
-        return next
+    async (patch: Partial<Pick<User, 'name' | 'phone'> & { password?: string }>) => {
+      const next = await api<User>('/auth/me', {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
       })
+      setUser(next)
     },
     [],
   )
 
   const value = useMemo(
-    () => ({ user, login, logout, updateProfile }),
-    [user, login, logout, updateProfile],
+    () => ({ user, loading, login, logout, updateProfile }),
+    [user, loading, login, logout, updateProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

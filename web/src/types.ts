@@ -12,7 +12,6 @@ export interface User {
   name: string
   phone: string
   role: Role
-  password: string
 }
 
 export interface Thresholds {
@@ -41,20 +40,20 @@ export interface Device {
   name: string
   firmwareVersion: string
   online: boolean
-  lastSeen: string
+  lastSeen: string | null
   assetId: string | null
 }
 
 export interface TelemetryReading {
   timestamp: string
-  temperature_c: number
-  humidity_percent: number
-  bmp_temperature_c: number
-  pressure_hpa: number
-  current_a: number
-  water_level: number
-  water_wet: boolean
-  mq3_raw: number
+  temperature_c: number | null
+  humidity_percent: number | null
+  bmp_temperature_c?: number | null
+  pressure_hpa?: number | null
+  current_a?: number | null
+  water_level?: number | null
+  water_wet?: boolean | null
+  mq3_raw?: number | null
 }
 
 export interface Incident {
@@ -67,19 +66,19 @@ export interface Incident {
   message: string
   recommendedAction: string
   detectedAt: string
-  acknowledgedAt?: string
-  acknowledgedBy?: string
-  resolvedAt?: string
-  resolvedBy?: string
-  resolveNote?: string
-  value?: number
-  threshold?: number
+  acknowledgedAt?: string | null
+  acknowledgedBy?: string | null
+  resolvedAt?: string | null
+  resolvedBy?: string | null
+  resolveNote?: string | null
+  value?: number | null
+  threshold?: number | null
 }
 
 export interface MaintenanceNote {
   id: string
   assetId: string
-  incidentId?: string
+  incidentId?: string | null
   authorId: string
   authorName: string
   body: string

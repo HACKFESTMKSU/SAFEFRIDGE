@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Badge } from '../components/ui/Badge'
 import { useData } from '../context/DataContext'
 import { roleLabel } from '../lib/format'
-import type { Role, User } from '../types'
+import type { Role } from '../types'
 
 export function UsersPage() {
   const { users, upsertUser } = useData()
@@ -12,22 +12,24 @@ export function UsersPage() {
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState<Role>('operator')
   const [password, setPassword] = useState('changeme')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
 
-  function onCreate(e: FormEvent) {
+  async function onCreate(e: FormEvent) {
     e.preventDefault()
-    const user: User = {
-      id: `u-${Date.now()}`,
-      name,
-      email,
-      phone,
-      role,
-      password,
+    setBusy(true)
+    setError('')
+    try {
+      await upsertUser({ name, email, phone, role, password })
+      setShow(false)
+      setName('')
+      setEmail('')
+      setPhone('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create user')
+    } finally {
+      setBusy(false)
     }
-    upsertUser(user)
-    setShow(false)
-    setName('')
-    setEmail('')
-    setPhone('')
   }
 
   return (
@@ -78,8 +80,9 @@ export function UsersPage() {
               <label>Temp password</label>
               <input value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <button className="btn" type="submit">
-              Create user
+            {error ? <p className="error-text">{error}</p> : null}
+            <button className="btn" type="submit" disabled={busy}>
+              {busy ? 'Creating…' : 'Create user'}
             </button>
           </form>
         </section>
