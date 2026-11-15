@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Activity,
@@ -5,6 +6,8 @@ import {
   BellRing,
   Boxes,
   Cpu,
+  ChevronLeft,
+  ChevronRight,
   History,
   LineChart,
   MessageSquareText,
@@ -22,17 +25,45 @@ const problems = [
   {
     icon: <Thermometer size={20} />,
     title: 'Silent excursions',
-    text: 'A fridge door left ajar or a failing compressor can push a unit out of range for hours — and nobody knows until the stock is already spoiled.',
+    text: 'From Nairobi hospitals to county clinics across Kenya, a fridge door left ajar or a failing compressor can push a unit out of range for hours — and nobody knows until the stock is already spoiled.',
   },
   {
     icon: <PlugZap size={20} />,
     title: 'Unreliable power & signal',
-    text: 'Brownouts and dead zones are everyday realities. Cloud-only monitors go blind exactly when facilities need them most.',
+    text: 'Kenya Power brownouts and dead zones in rural counties are everyday realities. Cloud-only monitors go blind exactly when facilities need them most.',
   },
   {
     icon: <TrendingDown size={20} />,
     title: 'Costly losses',
-    text: 'Vaccines, insulin and fresh produce represent enormous investment. One unnoticed failure can write off an entire batch.',
+    text: 'Vaccines under the Kenya immunisation programme, insulin and fresh produce represent enormous investment. One unnoticed failure can write off an entire batch.',
+  },
+]
+
+const slides = [
+  {
+    src: '/images/village_reach.jpg',
+    alt: 'Vaccine cold chain storage in Mozambique',
+    caption: 'The cold chain starts at the shelf — not the dashboard',
+  },
+  {
+    src: '/images/ghana_vaccine.jpg',
+    alt: 'Nurse preparing a COVID-19 vaccine in Ghana',
+    caption: 'Every dose depends on a working cold unit',
+  },
+  {
+    src: '/images/ethiopia_vaccine.jpg',
+    alt: 'Nurse preparing a measles vaccine in Ethiopia',
+    caption: 'Last-mile delivery needs last-mile monitoring',
+  },
+  {
+    src: '/images/cold_room.jpg',
+    alt: 'Cold storage room in Namibia',
+    caption: 'Cold rooms, pharmacies and freezers — all under one view',
+  },
+  {
+    src: '/images/africa.png',
+    alt: 'Map of Africa',
+    caption: 'Built for facilities across Africa, starting with Kenya',
   },
 ]
 
@@ -98,6 +129,12 @@ const roles = [
 
 export function LandingPage() {
   const { user } = useAuth()
+  const [slide, setSlide] = useState(0)
+
+  useEffect(() => {
+    const t = setInterval(() => setSlide((s) => (s + 1) % slides.length), 5000)
+    return () => clearInterval(t)
+  }, [])
 
   return (
     <div className="landing">
@@ -211,9 +248,9 @@ export function LandingPage() {
           <span className="landing-eyebrow">The problem</span>
           <h2>When a cold unit drifts, nobody gets the memo</h2>
           <p>
-            Across African clinics, pharmacies and food hubs, cold storage is
-            the invisible backbone of public health — and its failures are
-            almost always discovered too late.
+            Across Kenyan hospitals, county clinics, pharmacies and food hubs
+            — and the wider African cold chain — failures are almost always
+            discovered too late.
           </p>
         </div>
         <div className="landing-ps">
@@ -245,10 +282,39 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="landing-photo-band">
-        <img src="/images/ethiopia_vaccine.jpg" alt="Nurse preparing a measles vaccine in Ethiopia" />
-        <img src="/images/cold_room.jpg" alt="Cold storage room in Namibia" />
-        <img src="/images/africa.png" alt="Map of Africa" className="landing-photo-map" />
+      <section className="landing-slider" aria-label="Cold-chain in Africa">
+        <div className="landing-slider-track" style={{ transform: `translateX(-${slide * 100}%)` }}>
+          {slides.map((s) => (
+            <figure key={s.src} className="landing-slide">
+              <img src={s.src} alt={s.alt} />
+              <figcaption>{s.caption}</figcaption>
+            </figure>
+          ))}
+        </div>
+        <button
+          className="landing-slider-btn prev"
+          aria-label="Previous image"
+          onClick={() => setSlide((s) => (s - 1 + slides.length) % slides.length)}
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          className="landing-slider-btn next"
+          aria-label="Next image"
+          onClick={() => setSlide((s) => (s + 1) % slides.length)}
+        >
+          <ChevronRight size={20} />
+        </button>
+        <div className="landing-slider-dots">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              className={`landing-dot ${i === slide ? 'active' : ''}`}
+              aria-label={`Go to slide ${i + 1}`}
+              onClick={() => setSlide(i)}
+            />
+          ))}
+        </div>
       </section>
 
       <section id="platform" className="landing-section">
