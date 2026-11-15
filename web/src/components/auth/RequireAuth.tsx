@@ -4,7 +4,7 @@ import type { Role } from '../../types'
 
 export function RequireAuth({ roles }: { roles?: Role[] }) {
   const { user } = useAuth()
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Navigate to="/welcome" replace />
   if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />
   return <Outlet />
 }

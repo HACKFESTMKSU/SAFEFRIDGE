@@ -14,12 +14,16 @@ export function LoginPage() {
   const [email, setEmail] = useState('admin@coldguard.local')
   const [password, setPassword] = useState('admin123')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
   if (user) return <Navigate to="/" replace />
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault()
-    const result = login(email, password)
+    setBusy(true)
+    setError('')
+    const result = await login(email, password)
+    setBusy(false)
     if (!result.ok) setError(result.error ?? 'Login failed')
   }
 
@@ -60,8 +64,8 @@ export function LoginPage() {
             />
           </div>
           {error ? <p className="error-text">{error}</p> : null}
-          <button className="btn" type="submit">
-            Sign in
+          <button className="btn" type="submit" disabled={busy}>
+            {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
 

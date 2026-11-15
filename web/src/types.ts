@@ -55,6 +55,7 @@ export interface TelemetryReading {
   water_level: number
   water_wet: boolean
   mq3_raw: number
+  quality?: string
 }
 
 export interface Incident {
