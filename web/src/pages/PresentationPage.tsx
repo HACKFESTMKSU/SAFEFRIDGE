@@ -26,7 +26,7 @@ const slides: Slide[] = [
     title: 'Cold storage fails silently. We make it speak up.',
     body: [
       'ESP32 sensors → MQTT → cloud dashboard → threshold incidents → GSM SMS fallback.',
-      'Built for fridges, freezers and cold rooms across African healthcare and food facilities.',
+      'Built for cold rooms, freezers and cold boxes across African healthcare and food facilities.',
     ],
     icon: <Snowflake size={40} />,
   },

@@ -25,7 +25,7 @@ const problems = [
   {
     icon: <Thermometer size={20} />,
     title: 'Silent excursions',
-    text: 'From Nairobi hospitals to county clinics across Kenya, a fridge door left ajar or a failing compressor can push a unit out of range for hours — and nobody knows until the stock is already spoiled.',
+    text: 'From Nairobi hospitals to county clinics across Kenya, a cold-room door left ajar or a failing compressor can push a unit out of range for hours — and nobody knows until the stock is already spoiled.',
   },
   {
     icon: <PlugZap size={20} />,
@@ -105,7 +105,7 @@ const steps = [
     n: '01',
     icon: <Cpu size={20} />,
     title: 'Sense',
-    text: 'ESP32 reads DHT11, BMP180, ACS712 and water sensors every 60 seconds on the shelf, inside the cold room or under the fridge.',
+    text: 'ESP32 reads DHT11, BMP180, ACS712 and water sensors every 60 seconds on the shelf, inside the cold room or under the unit.',
   },
   {
     n: '02',
@@ -185,7 +185,7 @@ export function LandingPage() {
             <span className="landing-h1-accent">We make it speak up.</span>
           </h1>
           <p className="landing-sub">
-            ColdGuard monitors fridges, freezers and cold rooms across African
+            ColdGuard monitors cold rooms, freezers and cold boxes across African
             healthcare and food facilities — live telemetry, threshold
             incidents, and GSM SMS alerts that still fire when Wi-Fi doesn't.
           </p>
@@ -198,7 +198,7 @@ export function LandingPage() {
             </a>
           </div>
           <div className="landing-hero-meta">
-            <span><Boxes size={15} /> Fridges, freezers &amp; cold boxes</span>
+            <span><Boxes size={15} /> Cold rooms, freezers &amp; cold boxes</span>
             <span><History size={15} /> 24h telemetry history</span>
             <span><Users size={15} /> 3 role-based access levels</span>
           </div>
@@ -210,7 +210,7 @@ export function LandingPage() {
               <Thermometer size={16} />
               <div>
                 <strong>4.2°C</strong>
-                <span>Pharmacy Fridge A · live</span>
+                <span>Pharmacy Cold Unit A · live</span>
               </div>
             </div>
             <div className="landing-float landing-float-incident">
@@ -269,7 +269,7 @@ export function LandingPage() {
               <span className="landing-eyebrow">The solution</span>
               <h3>ColdGuard watches every unit, all the time</h3>
               <p>
-                An ESP32 on each fridge reads temperature, humidity, pressure,
+                An ESP32 on each cold unit reads temperature, humidity, pressure,
                 compressor current and leaks — publishing over MQTT and raising
                 incidents the moment readings leave safe bounds. If Wi-Fi dies,
                 critical conditions still trigger SMS over GSM.
@@ -323,7 +323,7 @@ export function LandingPage() {
           <h2>Built for the realities of African cold storage</h2>
           <p>
             Power cuts, weak signal and remote sites are the norm. ColdGuard is
-            designed so a single fridge failure never becomes a silent
+            designed so a single unit failure never becomes a silent
             vaccine spoilage event.
           </p>
         </div>
@@ -377,7 +377,7 @@ export function LandingPage() {
         <div>
           <h2>See it live — no hardware required</h2>
           <p>
-            The demo dashboard ships with seeded fridges, a freezer excursion
+            The demo dashboard ships with seeded cold units, a freezer excursion
             and a device-offline scenario. Sign in and explore.
           </p>
         </div>
