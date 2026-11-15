@@ -317,13 +317,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
               password: next.password,
             },
           })
-      setUsers((prev) => {
+    setUsers((prev) => {
         const i = prev.findIndex((u) => u.id === updated.id)
         if (i < 0) return [...prev, updated]
-        const copy = [...prev]
+      const copy = [...prev]
         copy[i] = updated
-        return copy
-      })
+      return copy
+    })
     } catch (err) {
       console.error('upsertUser failed', err)
     }

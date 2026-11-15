@@ -20,15 +20,15 @@
 /* Credentials - REPLACE BEFORE FLASHING                                */
 /* ------------------------------------------------------------------ */
 #ifndef WIFI_SSID
-#define WIFI_SSID "YOUR_WIFI"        // e.g. "LabWiFi"
+#define WIFI_SSID "Phoenix"        // e.g. "LabWiFi"
 #endif
 #ifndef WIFI_PASS
-#define WIFI_PASS "YOUR_WIFI_PASS"   // WPA2 password ("" for open)
+#define WIFI_PASS "Crypto.com"   // WPA2 password ("" for open)
 #endif
 
 /* MQTT broker */
 #ifndef MQTT_HOST
-#define MQTT_HOST "192.168.x.x"      // TODO: set to your Mosquitto host/IP
+#define MQTT_HOST "192.168.100.5"      // TODO: set to your Mosquitto host/IP
 #endif
 #ifndef MQTT_PORT
 #define MQTT_PORT 1883               // 1883 plain, 8883 TLS
@@ -48,7 +48,7 @@
 /* ------------------------------------------------------------------ */
 /* Timing                                                               */
 /* ------------------------------------------------------------------ */
-#define SAMPLE_INTERVAL_MS   60000UL   // FR-07: sensor read + publish cadence
+#define SAMPLE_INTERVAL_MS   5000UL   // FR-07: sensor read + publish cadence
 #define STATUS_INTERVAL_MS   30000UL   // heartbeat on .../status topic
 #define RECONNECT_MIN_MS     5000UL    // base backoff for Wi-Fi/MQTT
 #define RECONNECT_MAX_MS     60000UL   // max backoff
