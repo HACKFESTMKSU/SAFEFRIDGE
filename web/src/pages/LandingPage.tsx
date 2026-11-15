@@ -8,13 +8,33 @@ import {
   History,
   LineChart,
   MessageSquareText,
+  PlugZap,
   Radio,
   ShieldCheck,
   Snowflake,
   Thermometer,
+  TrendingDown,
   Users,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+
+const problems = [
+  {
+    icon: <Thermometer size={20} />,
+    title: 'Silent excursions',
+    text: 'A fridge door left ajar or a failing compressor can push a unit out of range for hours — and nobody knows until the stock is already spoiled.',
+  },
+  {
+    icon: <PlugZap size={20} />,
+    title: 'Unreliable power & signal',
+    text: 'Brownouts and dead zones are everyday realities. Cloud-only monitors go blind exactly when facilities need them most.',
+  },
+  {
+    icon: <TrendingDown size={20} />,
+    title: 'Costly losses',
+    text: 'Vaccines, insulin and fresh produce represent enormous investment. One unnoticed failure can write off an entire batch.',
+  },
+]
 
 const features = [
   {
@@ -93,6 +113,7 @@ export function LandingPage() {
             </div>
           </Link>
           <nav className="landing-links">
+            <a href="#problem">The problem</a>
             <a href="#platform">Platform</a>
             <a href="#how">How it works</a>
             <a href="#roles">Roles</a>
@@ -122,9 +143,9 @@ export function LandingPage() {
             <Snowflake size={14} /> ESP32 · MQTT · GSM SMS
           </span>
           <h1>
-            Every degree matters.
+            Cold storage fails silently.
             <br />
-            <span className="landing-h1-accent">Guard the cold chain.</span>
+            <span className="landing-h1-accent">We make it speak up.</span>
           </h1>
           <p className="landing-sub">
             ColdGuard monitors fridges, freezers and cold rooms across African
@@ -135,8 +156,8 @@ export function LandingPage() {
             <Link className="btn lg" to="/login">
               {user ? 'Open dashboard' : 'Explore the live demo'} <ArrowRight size={17} />
             </Link>
-            <a className="btn secondary lg" href="#platform">
-              See the platform
+            <a className="btn secondary lg" href="#problem">
+              See the problem
             </a>
           </div>
           <div className="landing-hero-meta">
@@ -147,7 +168,7 @@ export function LandingPage() {
         </div>
         <div className="landing-hero-visual">
           <div className="landing-hero-card">
-            <img src="/images/africa.png" alt="Africa — ColdGuard coverage" />
+            <img src="/images/village_reach.jpg" alt="Vaccine cold chain storage in Mozambique" />
             <div className="landing-float landing-float-temp">
               <Thermometer size={16} />
               <div>
@@ -183,6 +204,51 @@ export function LandingPage() {
           <strong>24/7</strong>
           <span>Monitoring &amp; alerting</span>
         </div>
+      </section>
+
+      <section id="problem" className="landing-section">
+        <div className="landing-section-head">
+          <span className="landing-eyebrow">The problem</span>
+          <h2>When a cold unit drifts, nobody gets the memo</h2>
+          <p>
+            Across African clinics, pharmacies and food hubs, cold storage is
+            the invisible backbone of public health — and its failures are
+            almost always discovered too late.
+          </p>
+        </div>
+        <div className="landing-ps">
+          <div className="landing-problem">
+            {problems.map((p) => (
+              <article key={p.title} className="landing-ps-card">
+                <div className="landing-feature-icon">{p.icon}</div>
+                <h3>{p.title}</h3>
+                <p>{p.text}</p>
+              </article>
+            ))}
+          </div>
+          <div className="landing-solution">
+            <img src="/images/ghana_vaccine.jpg" alt="Nurse preparing a COVID-19 vaccine in Ghana" />
+            <div className="landing-solution-copy">
+              <span className="landing-eyebrow">The solution</span>
+              <h3>ColdGuard watches every unit, all the time</h3>
+              <p>
+                An ESP32 on each fridge reads temperature, humidity, pressure,
+                compressor current and leaks — publishing over MQTT and raising
+                incidents the moment readings leave safe bounds. If Wi-Fi dies,
+                critical conditions still trigger SMS over GSM.
+              </p>
+              <Link className="btn" to="/login">
+                See it working <ArrowRight size={16} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="landing-photo-band">
+        <img src="/images/ethiopia_vaccine.jpg" alt="Nurse preparing a measles vaccine in Ethiopia" />
+        <img src="/images/cold_room.jpg" alt="Cold storage room in Namibia" />
+        <img src="/images/africa.png" alt="Map of Africa" className="landing-photo-map" />
       </section>
 
       <section id="platform" className="landing-section">
