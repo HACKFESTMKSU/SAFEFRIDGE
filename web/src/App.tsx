@@ -4,6 +4,7 @@ import { DataProvider } from './context/DataContext'
 import { RequireAuth } from './components/auth/RequireAuth'
 import { AppShell } from './components/layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
+import { LandingPage } from './pages/LandingPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AssetsPage } from './pages/AssetsPage'
 import { AssetDetailPage } from './pages/AssetDetailPage'
@@ -17,6 +18,7 @@ import { ProfilePage } from './pages/ProfilePage'
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/welcome" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
