@@ -5,6 +5,7 @@ import { RequireAuth } from './components/auth/RequireAuth'
 import { AppShell } from './components/layout/AppShell'
 import { LoginPage } from './pages/LoginPage'
 import { LandingPage } from './pages/LandingPage'
+import { PresentationPage } from './pages/PresentationPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { AssetsPage } from './pages/AssetsPage'
 import { AssetDetailPage } from './pages/AssetDetailPage'
@@ -19,6 +20,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/welcome" element={<LandingPage />} />
+      <Route path="/presentation" element={<PresentationPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route element={<RequireAuth />}>
         <Route element={<AppShell />}>
