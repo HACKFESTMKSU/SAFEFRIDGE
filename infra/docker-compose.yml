@@ -1,0 +1,100 @@
+# ColdGuard — local demo stack
+# PostgreSQL + Mosquitto (MQTT) + FastAPI backend
+#
+# Quickstart:
+#   cd infra
+#   copy .env.example .env        (Windows)   /   cp .env.example .env   (Linux/macOS)
+#   docker compose up -d --build
+#
+# Services:
+#   db          PostgreSQL 16        -> localhost:5432
+#   mosquitto   MQTT broker           -> localhost:1883
+#   backend     FastAPI (builds ../backend) -> http://localhost:8000
+#
+# NOTE: the backend service requires `backend/Dockerfile` in the repo root
+# (provided by the backend workstream). Until it exists, start infra without
+# it:  `docker compose up -d db mosquitto`
+
+name: coldgard
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: coldgard-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: coldgard
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-coldgard}
+      POSTGRES_DB: coldgard
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Optional: uncomment to run a one-time init script
+      # - ./init-db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coldgard -d coldgard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: coldgard-mosquitto
+    restart: unless-stopped
+    # Demo mode: anonymous publish/subscribe on 1883 (see mosquitto.conf).
+    # For a hardened broker, enable password_file in the conf and uncomment
+    # MQTT_USERNAME/MQTT_PASSWORD in .env, then rebuild with --profile secure
+    # or edit the conf directly. `docker exec -it coldgard-mosquitto mosquitto_passwd -c /mosquitto/config/passwd coldgard`
+    ports:
+      - "1883:1883"
+      # - "8883:8883"   # uncomment once TLS is configured
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    healthcheck:
+      # The image ships mosquitto_sub; use it to verify the broker is up.
+      test: ["CMD-SHELL", "mosquitto_sub -h localhost -t '$SYS/#' -C 1 -W 5 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    build:
+      context: ../backend
+      # Requires backend/Dockerfile (provided by the backend workstream).
+      # Until it exists, run `docker compose up -d db mosquitto` instead.
+    container_name: coldgard-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://coldgard:${POSTGRES_PASSWORD:-coldgard}@db:5432/coldgard
+      MQTT_HOST: mosquitto
+      MQTT_PORT: "1883"
+      # MQTT_USERNAME: ${MQTT_USERNAME:-}
+      # MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me}
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      mosquitto:
+        condition: service_healthy
+
+  # Optional DB inspection UI — uncomment to use (http://localhost:5050)
+  # adminer:
+  #   image: adminer:latest
+  #   container_name: coldgard-adminer
+  #   restart: unless-stopped
+  #   ports:
+  #     - "5050:8080"
+  #   depends_on:
+  #     - db
+
+volumes:
+  pgdata:
+  mosquitto-data:
+  mosquitto-log:
