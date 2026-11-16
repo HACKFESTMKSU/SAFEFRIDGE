@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate } from 'react-router-dom'
-import { Snowflake } from 'lucide-react'
+import { Link, Navigate } from 'react-router-dom'
+import { ArrowLeft } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const demos = [
@@ -24,69 +24,72 @@ export function LoginPage() {
     setError('')
     const result = await login(email, password)
     setBusy(false)
-    if (!result.ok) setError(result.error ?? 'Login failed')
+    if (!result.ok) setError(result.error ?? 'Sign-in failed. Check the email and password.')
   }
 
   return (
     <div className="login-page">
-      <div className="login-panel">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div className="brand-mark" style={{ background: '#0b3d4a', color: '#5eead4' }}>
-            <Snowflake size={20} />
-          </div>
-          <div>
-            <h1>ColdGuard</h1>
-            <p className="sub">Sign in to monitor cold storage</p>
-          </div>
-        </div>
+      <div className="login-wrap">
+        <Link to="/welcome" className="login-back">
+          <ArrowLeft size={14} /> Back to the ColdGuard page
+        </Link>
+        <div className="login-panel">
+          <span className="brand-badge">COLDGUARD</span>
+          <h1>Sign in</h1>
+          <p className="sub">See every cold unit, live.</p>
 
-        <form className="form" onSubmit={onSubmit}>
-          <div className="field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-          {error ? <p className="error-text">{error}</p> : null}
-          <button className="btn" type="submit" disabled={busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </form>
-
-        <div className="demo-accounts">
-          <strong style={{ color: 'var(--ink)' }}>Demo accounts</strong>
-          {demos.map((d) => (
-            <div key={d.email}>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail(d.email)
-                  setPassword(d.password)
-                  setError('')
-                }}
-              >
-                {d.label}
-              </button>
-              {' · '}
-              {d.email} / {d.password}
+          <form className="form" onSubmit={onSubmit}>
+            <div className="field">
+              <label htmlFor="email">Email</label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-          ))}
+            <div className="field">
+              <label htmlFor="password">Password</label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error ? (
+              <p className="error-text" role="alert">
+                {error}
+              </p>
+            ) : null}
+            <button className="btn" type="submit" disabled={busy}>
+              {busy ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+
+          <div className="demo-accounts">
+            <p>Try a demo role. Each one fills in its own login.</p>
+            <div className="demo-row">
+              {demos.map((d) => (
+                <button
+                  key={d.email}
+                  type="button"
+                  aria-pressed={email === d.email}
+                  onClick={() => {
+                    setEmail(d.email)
+                    setPassword(d.password)
+                    setError('')
+                  }}
+                >
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

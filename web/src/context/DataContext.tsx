@@ -28,6 +28,8 @@ interface DataState {
   users: User[]
   ready: boolean
   connected: boolean
+  /** Epoch ms of the last successful poll, for "updated 4s ago" indicators. */
+  lastUpdated: number | null
   getTelemetry: (deviceId: string) => TelemetryReading[]
   getLatest: (deviceId: string) => TelemetryReading | null
   upsertAsset: (asset: Asset) => Promise<void>
@@ -41,6 +43,9 @@ interface DataState {
 
 const DataContext = createContext<DataState | null>(null)
 
+const NO_SERIES: TelemetryReading[] = []
+
+const POLL_LIVE_MS = 5_000
 const POLL_META_MS = 15_000
 const POLL_FULL_MS = 60_000
 
@@ -69,11 +74,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [telemetry, setTelemetry] = useState<Record<string, TelemetryReading[]>>({})
   const [ready, setReady] = useState(false)
   const [connected, setConnected] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null)
 
   const assetsRef = useRef<Asset[]>([])
   useEffect(() => {
     assetsRef.current = assets
   }, [assets])
+
+  const devicesRef = useRef<Device[]>([])
+  useEffect(() => {
+    devicesRef.current = devices
+  }, [devices])
 
   const loadNotes = useCallback(async (assetList: Asset[]) => {
     const lists = await Promise.all(
@@ -102,10 +113,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const loadTelemetryLatest = useCallback(async (deviceList: Device[]) => {
+    let reached = 0
     const results = await Promise.all(
       deviceList.map((d) =>
         api<TelemetryReading | null>(`/telemetry/${d.id}/latest`)
-          .then((r) => (r ? normReading(r) : null))
+          .then((r) => {
+            reached += 1
+            return r ? normReading(r) : null
+          })
           .catch(() => null),
       ),
     )
@@ -124,6 +139,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })
       return next
     })
+    return reached
   }, [])
 
   const loadCore = useCallback(async () => {
@@ -166,6 +182,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       try {
         await refresh(full)
         setConnected(true)
+        setLastUpdated(Date.now())
       } catch {
         setConnected(false)
         // 401 already cleared the token; auth context will redirect
@@ -173,18 +190,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setReady(true)
       }
     }
+    // Fast path: only the newest reading per device, so charts move in near real time.
+    const runLive = async () => {
+      const list = devicesRef.current
+      if (!list.length) return
+      const reached = await loadTelemetryLatest(list)
+      if (cancelled) return
+      if (reached > 0) setLastUpdated(Date.now())
+    }
     run(true)
+    const liveTimer = setInterval(runLive, POLL_LIVE_MS)
     const metaTimer = setInterval(() => run(false), POLL_META_MS)
     const fullTimer = setInterval(() => run(true), POLL_FULL_MS)
     return () => {
       cancelled = true
+      clearInterval(liveTimer)
       clearInterval(metaTimer)
       clearInterval(fullTimer)
     }
-  }, [user, refresh])
+  }, [user, refresh, loadTelemetryLatest])
 
   const getTelemetry = useCallback(
-    (deviceId: string) => telemetry[deviceId] ?? [],
+    (deviceId: string) => telemetry[deviceId] ?? NO_SERIES,
     [telemetry],
   )
 
@@ -335,6 +362,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       users,
       ready,
       connected,
+      lastUpdated,
       getTelemetry,
       getLatest,
       upsertAsset,
@@ -353,6 +381,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       users,
       ready,
       connected,
+      lastUpdated,
       getTelemetry,
       getLatest,
       upsertAsset,
