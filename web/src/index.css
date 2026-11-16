@@ -2290,3 +2290,125 @@ table.data td.wrap {
   .rv-manifesto-card { padding: 2rem; }
   .rv-hero { grid-template-columns: 1fr; }
 }
+
+/* ---------- Live monitor hero card ---------- */
+
+.rv-monitor {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.6rem 1.7rem;
+  position: relative;
+}
+.rv-monitor::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border: 3px solid var(--ink);
+  transform: rotate(-1deg);
+  pointer-events: none;
+  z-index: -1;
+  border-radius: 22px;
+}
+.rv-monitor-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-muted);
+}
+.rv-monitor-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34,197,94,0.15);
+}
+.rv-monitor-time { margin-left: auto; }
+.rv-monitor-temp {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--ink);
+  margin: 0.9rem 0 1rem;
+}
+.rv-monitor-rows {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem 1rem;
+  margin-bottom: 1.2rem;
+}
+.rv-monitor-rows div {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 0.45rem;
+  font-size: 0.88rem;
+}
+.rv-monitor-rows span { color: var(--ink-muted); }
+.rv-monitor-rows b { font-family: 'Space Grotesk', sans-serif; }
+.rv-monitor-rows b.ok { color: #16a34a; }
+.rv-monitor-band {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  margin-bottom: 1rem;
+}
+.rv-monitor-bar {
+  flex: 1;
+  height: 10px;
+  background: var(--brand-soft);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.rv-monitor-bar span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+  border-radius: 999px;
+}
+.rv-monitor-link {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+/* ---------- Dashboard polish: Bebas titles, Space Grotesk UI ---------- */
+
+.app-shell h1, .app-shell h2, .app-shell h3 {
+  font-family: 'Space Grotesk', 'Outfit', sans-serif;
+  letter-spacing: -0.01em;
+}
+.app-shell h2 { font-weight: 700; }
+.main > header h1,
+.panel > header h2 {
+  font-family: 'Bebas Neue', 'Space Grotesk', sans-serif;
+  letter-spacing: 0.02em;
+  font-weight: 400;
+}
+.main > header h1 { font-size: 2rem; }
+.panel > header h2 { font-size: 1.35rem; }
+
+.metric { border-radius: 14px; }
+.panel { border-radius: 14px; }
+.badge { font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.05em; }
+
+/* Dashboard Bebas titles — broad fallback */
+.app-shell .panel h2,
+.app-shell .page-head h1,
+.app-shell .top h1 {
+  font-family: 'Bebas Neue', 'Space Grotesk', sans-serif;
+  letter-spacing: 0.03em;
+  font-weight: 400;
+}

@@ -88,12 +88,25 @@ export function LandingPage() {
             medicines, vaccines and fresh food depend on — working end-to-end today.
           </p>
         </div>
-        <div className="rv-brush-card">
-          <h3>How many units fail silently?</h3>
-          <div className="rv-brush-num">1 in 3</div>
-          <p className="rv-brush-sub">harvests in Kenya are lost after farm gate</p>
-          <Link className="btn" to="/login">Count us in</Link>
-          <a className="rv-brush-link" href="#manifesto">View our manifesto →</a>
+        <div className="rv-monitor">
+          <div className="rv-monitor-head">
+            <span className="rv-monitor-dot" />
+            <span>Unit CG-001 · live</span>
+            <span className="rv-monitor-time">just now</span>
+          </div>
+          <div className="rv-monitor-temp">4.2°C</div>
+          <div className="rv-monitor-rows">
+            <div><span>Humidity</span><b>58%</b></div>
+            <div><span>Power draw</span><b>1.4 A</b></div>
+            <div><span>Leaks</span><b>None</b></div>
+            <div><span>Status</span><b className="ok">Safe range</b></div>
+          </div>
+          <div className="rv-monitor-band">
+            <span>2°C</span>
+            <div className="rv-monitor-bar"><span style={{width:'55%'}} /></div>
+            <span>8°C</span>
+          </div>
+          <a className="rv-monitor-link" href="#manifesto">How we keep every unit in range →</a>
         </div>
       </section>
 
