@@ -1648,3 +1648,69 @@ table.data td.wrap {
   .rv-about-grid, .rv-contact { grid-template-columns: 1fr; }
   .rv-contact-form { grid-template-columns: 1fr; }
 }
+
+/* ---------- Canva BAYVIEW palette override (landing only) ---------- */
+
+.landing {
+  --bg: #f4f1e6;
+  --surface: #fffdf6;
+  --line: #e4dfcd;
+  --ink: #1b1112;
+  --ink-muted: #6f6258;
+  --brand: #e8492f;
+  --brand-soft: #fdeee8;
+  --shadow: 0 10px 30px rgba(27, 17, 18, 0.08);
+  background: var(--bg);
+}
+
+.landing .btn {
+  background: var(--brand);
+  color: #fff;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.landing .btn:hover { filter: brightness(0.94); }
+
+.landing .btn.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+
+.landing .rv-quote,
+.landing .rv-unit,
+.landing .rv-contact-form,
+.landing .landing-slide figcaption {
+  border-radius: 20px;
+}
+
+.landing .rv-quote {
+  border: 2px solid var(--ink);
+  box-shadow: 8px 8px 0 rgba(27, 17, 18, 0.9);
+}
+
+.landing .rv-quote h3 { color: var(--brand); }
+
+.landing .landing-feature-icon,
+.landing .rv-unit-tag {
+  background: var(--brand);
+  color: #fff;
+}
+
+.landing .rv-quote .btn { width: 100%; }
+
+.landing .rv-trusted {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.landing .rv-trusted p { color: #f4f1e6; }
+
+.landing .rv-contact-info { background: var(--ink); }
+
+.landing .landing-eyebrow {
+  color: var(--brand);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
