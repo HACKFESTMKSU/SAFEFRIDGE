@@ -60,16 +60,12 @@ export function IncidentDetailPage() {
     <>
       <div className="page-intro">
         <div>
-          <Link
-            to="/incidents"
-            className="btn ghost sm"
-            style={{ marginBottom: '0.5rem', paddingLeft: 0 }}
-          >
+          <Link to="/incidents" className="btn ghost sm" style={{ marginBottom: 10 }}>
             <ArrowLeft size={16} /> Incidents
           </Link>
-          <h2 style={{ fontSize: '1.35rem' }}>{incident.title}</h2>
+          <h2>{incident.title}</h2>
           <p>
-            {asset?.name} · Detected {fmtRelative(incident.detectedAt)}
+            {asset?.name ?? 'Unknown unit'}, detected {fmtRelative(incident.detectedAt)}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
@@ -87,41 +83,23 @@ export function IncidentDetailPage() {
           <div className="panel-head">
             <h2>Details</h2>
           </div>
-          <p style={{ marginBottom: '0.85rem' }}>{incident.message}</p>
-          <div
-            style={{
-              display: 'flex',
-              gap: '0.65rem',
-              padding: '0.9rem 1rem',
-              borderRadius: 12,
-              background: 'var(--brand-soft)',
-              border: '1px solid #bfe3e0',
-              marginBottom: '1rem',
-            }}
-          >
+          <p style={{ marginBottom: 14 }}>{incident.message}</p>
+          <div className="callout" style={{ marginBottom: 18 }}>
             <MessageSquareWarning size={18} style={{ flexShrink: 0, marginTop: 2 }} />
             <div>
-              <strong style={{ display: 'block', marginBottom: 4 }}>Recommended action</strong>
-              <span style={{ color: 'var(--ink-muted)' }}>{incident.recommendedAction}</span>
+              <strong>Recommended action</strong>
+              <span style={{ color: 'var(--text-2)' }}>{incident.recommendedAction}</span>
             </div>
           </div>
-          <dl
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '140px 1fr',
-              gap: '0.45rem 0.75rem',
-              fontSize: '0.92rem',
-              margin: 0,
-            }}
-          >
-            <dt style={{ color: 'var(--ink-muted)' }}>Type</dt>
-            <dd style={{ margin: 0 }}>{incident.type}</dd>
-            <dt style={{ color: 'var(--ink-muted)' }}>Detected</dt>
-            <dd style={{ margin: 0 }}>{fmtWhen(incident.detectedAt)}</dd>
+          <dl className="kv">
+            <dt>Type</dt>
+            <dd>{incident.type.replace('_', ' ')}</dd>
+            <dt>Detected</dt>
+            <dd>{fmtWhen(incident.detectedAt)}</dd>
             {incident.value != null ? (
               <>
-                <dt style={{ color: 'var(--ink-muted)' }}>Reading</dt>
-                <dd style={{ margin: 0 }} className="mono">
+                <dt>Reading</dt>
+                <dd className="mono">
                   {incident.value}
                   {incident.threshold != null ? ` (threshold ${incident.threshold})` : ''}
                 </dd>
@@ -129,22 +107,22 @@ export function IncidentDetailPage() {
             ) : null}
             {incident.acknowledgedAt ? (
               <>
-                <dt style={{ color: 'var(--ink-muted)' }}>Acknowledged</dt>
-                <dd style={{ margin: 0 }}>
+                <dt>Acknowledged</dt>
+                <dd>
                   {fmtWhen(incident.acknowledgedAt)}
-                  {ackUser ? ` · ${ackUser.name}` : ''}
+                  {ackUser ? ` by ${ackUser.name}` : ''}
                 </dd>
               </>
             ) : null}
             {incident.resolvedAt ? (
               <>
-                <dt style={{ color: 'var(--ink-muted)' }}>Resolved</dt>
-                <dd style={{ margin: 0 }}>
+                <dt>Resolved</dt>
+                <dd>
                   {fmtWhen(incident.resolvedAt)}
-                  {resUser ? ` · ${resUser.name}` : ''}
+                  {resUser ? ` by ${resUser.name}` : ''}
                 </dd>
-                <dt style={{ color: 'var(--ink-muted)' }}>Resolution note</dt>
-                <dd style={{ margin: 0 }}>{incident.resolveNote}</dd>
+                <dt>Resolution note</dt>
+                <dd>{incident.resolveNote}</dd>
               </>
             ) : null}
           </dl>

@@ -34,7 +34,7 @@ export function UsersPage() {
     <>
       <div className="page-intro">
         <div>
-          <h2 style={{ fontSize: '1.35rem' }}>Users</h2>
+          <h2>Users</h2>
           <p>Three roles only: Admin, Operator, Technician.</p>
         </div>
         <button className="btn" onClick={() => setShow((v) => !v)}>

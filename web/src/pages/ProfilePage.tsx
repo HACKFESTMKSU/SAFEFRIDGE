@@ -32,7 +32,7 @@ export function ProfilePage() {
     <>
       <div className="page-intro">
         <div>
-          <h2 style={{ fontSize: '1.35rem' }}>Profile</h2>
+          <h2>Profile</h2>
           <p>Update your name, phone (for SMS alerts), and password.</p>
         </div>
       </div>
