@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -42,15 +42,6 @@ const slides = [
 export function LandingPage() {
   const { user } = useAuth()
   const [slide, setSlide] = useState(0)
-  const [form, setForm] = useState({ name: '', phone: '', unit: 'Dispensary / pharmacy unit', need: 'Ongoing monitoring' })
-
-  function onQuote(e: FormEvent) {
-    e.preventDefault()
-    const body = encodeURIComponent(
-      `ColdGuard quote request\nName: ${form.name}\nPhone: ${form.phone}\nUnit type: ${form.unit}\nNeed: ${form.need}`,
-    )
-    window.location.href = `mailto:hello@coldguard.local?subject=ColdGuard%20quote&body=${body}`
-  }
 
   return (
     <div className="landing">
@@ -64,7 +55,6 @@ export function LandingPage() {
             <a href="#manifesto">About</a>
             <a href="#units">Units</a>
             <a href="#events">Deployments</a>
-            <a href="#contact">Contact</a>
           </nav>
           <div className="landing-nav-cta">
             {user ? (
@@ -110,13 +100,6 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* DEMO STRIP — M-Pesa-style band */}
-      <section className="rv-paystrip">
-        <span className="rv-paystrip-badge">LIVE DEMO</span>
-        <span className="rv-paystrip-text">admin@coldguard.local · admin123 — sign in to see the live dashboard</span>
-        <Link className="btn" to="/login">Open dashboard →</Link>
-      </section>
-
       {/* WIDE MEDIA BANNER — video + photo slider */}
       <section className="rv-banner">
         <div className="landing-slider-track" style={{ transform: `translateX(-${slide * 100}%)` }}>
@@ -145,7 +128,7 @@ export function LandingPage() {
           {manifesto.map((m, i) => <p key={i}>{m}</p>)}
           <div className="rv-manifesto-cta">
             <Link className="btn dark square" to="/login">Live demo</Link>
-            <a className="btn dark square" href="#contact">Get a quote</a>
+            <a className="btn dark square" href="#units">Our units</a>
           </div>
         </div>
       </section>
@@ -219,31 +202,11 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* CONTACT */}
-      <section id="contact" className="landing-section rv-contact">
-        <div className="landing-section-head">
-          <span className="landing-eyebrow">Contact us</span>
-          <h2>Talk to the team</h2>
-        </div>
-        <form className="rv-contact-form" onSubmit={onQuote}>
-          <div className="field"><label>Name</label><input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
-          <div className="field"><label>Email address</label><input type="email" placeholder="you@facility.org" /></div>
-          <div className="field" style={{gridColumn:'1/-1'}}><label>Leave a message</label><textarea rows={4} placeholder="Tell us about your cold storage needs…" /></div>
-          <button className="btn" type="submit">Submit</button>
-        </form>
-        <div className="rv-contact-info">
-          <img src="/images/pharmacy_store.jpg" alt="A Kenyan chemist serving a customer" className="rv-contact-img" />
-          <h3>ColdGuard</h3>
-          <p>hello@coldguard.local</p>
-          <p>+254 700 000 000</p>
-          <p>Nairobi, Kenya</p>
-        </div>
-      </section>
 
       <footer className="rv-footer">
         <span className="brand-badge">COLDGUARD</span>
         <nav className="rv-footer-links">
-          <a href="#manifesto">About</a><a href="#units">Units</a><a href="#events">Deployments</a><a href="#contact">Contact</a><Link to="/login">Sign in</Link>
+          <a href="#manifesto">About</a><a href="#units">Units</a><a href="#events">Deployments</a><Link to="/login">Sign in</Link>
         </nav>
         <p className="rv-footer-copy">© 2026 ColdGuard · HACKFEST MKSU · Team ColdGuard</p>
       </footer>
