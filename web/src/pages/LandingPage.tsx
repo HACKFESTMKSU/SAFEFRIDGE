@@ -1,287 +1,182 @@
-import { useEffect, useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  Activity,
   ArrowRight,
   BellRing,
   Boxes,
-  Cpu,
   ChevronLeft,
   ChevronRight,
-  History,
+  Cpu,
   LineChart,
+  Mail,
+  MapPin,
   MessageSquareText,
-  PlugZap,
+  Phone,
   Radio,
   ShieldCheck,
   Snowflake,
+  Star,
   Thermometer,
-  TrendingDown,
-  Users,
 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
-const problems = [
+const units = [
   {
-    icon: <Thermometer size={20} />,
-    title: 'Silent excursions',
-    text: 'From Nairobi hospitals to county clinics across Kenya, a cold-room door left ajar or a failing compressor can push a unit out of range for hours — and nobody knows until the stock is already spoiled.',
+    name: 'CG-001 · Pharmacy Unit',
+    desc: 'Compact monitor for dispensary and pharmacy cold storage — temp, humidity, current and leak sensing.',
+    tag: '2–8°C',
   },
   {
-    icon: <PlugZap size={20} />,
-    title: 'Unreliable power & signal',
-    text: 'Kenya Power brownouts and dead zones in rural counties are everyday realities. Cloud-only monitors go blind exactly when facilities need them most.',
+    name: 'CG-002 · Freezer Unit',
+    desc: 'Deep-cold monitoring for vaccine freezers and cold rooms — critical excursion alerts included.',
+    tag: '−25 to −15°C',
   },
   {
-    icon: <TrendingDown size={20} />,
-    title: 'Costly losses',
-    text: 'Vaccines under the Kenya immunisation programme, insulin and fresh produce represent enormous investment. One unnoticed failure can write off an entire batch.',
-  },
-]
-
-const slides = [
-  {
-    src: '/images/village_reach.jpg',
-    alt: 'Vaccine cold chain storage in Mozambique',
-    caption: 'The cold chain starts at the shelf — not the dashboard',
-  },
-  {
-    src: '/images/ghana_vaccine.jpg',
-    alt: 'Nurse preparing a COVID-19 vaccine in Ghana',
-    caption: 'Every dose depends on a working cold unit',
-  },
-  {
-    src: '/images/ethiopia_vaccine.jpg',
-    alt: 'Nurse preparing a measles vaccine in Ethiopia',
-    caption: 'Last-mile delivery needs last-mile monitoring',
-  },
-  {
-    src: '/images/cold_room.jpg',
-    alt: 'Cold storage room in Namibia',
-    caption: 'Cold rooms, pharmacies and freezers — all under one view',
-  },
-  {
-    src: '/images/africa.png',
-    alt: 'Map of Africa',
-    caption: 'Built for facilities across Africa, starting with Kenya',
+    name: 'CG-003 · Cold Box',
+    desc: 'Portable box monitoring for outreach and lab use — battery-friendly, GSM-ready.',
+    tag: '2–8°C',
   },
 ]
 
 const features = [
-  {
-    icon: <Thermometer size={22} />,
-    title: 'Live cold-chain telemetry',
-    text: 'Temperature, humidity, pressure, compressor current and water-leak readings from every unit, refreshed in real time.',
-  },
-  {
-    icon: <BellRing size={22} />,
-    title: 'Threshold incidents',
-    text: 'Sustained excursions automatically open incidents with severity, evidence and recommended actions for your team.',
-  },
-  {
-    icon: <Radio size={22} />,
-    title: 'Works when Wi-Fi dies',
-    text: 'ESP32 buffers readings during outages and fires critical SMS alerts over GSM via SIM800L — no cloud required.',
-  },
-  {
-    icon: <LineChart size={22} />,
-    title: '24-hour history',
-    text: 'Per-asset charts of temperature, humidity and current so technicians can spot drift before it becomes a failure.',
-  },
-  {
-    icon: <ShieldCheck size={22} />,
-    title: 'Role-based access',
-    text: 'Admin, Operator and Technician roles keep configuration, response and maintenance duties cleanly separated.',
-  },
-  {
-    icon: <MessageSquareText size={22} />,
-    title: 'Maintenance notes',
-    text: 'Technicians log inspections and repairs against assets and incidents — full audit trail for every cold unit.',
-  },
+  { icon: <Thermometer size={22} />, title: 'Live telemetry', text: 'Temperature, humidity, pressure, current and leak readings refreshed in real time.' },
+  { icon: <BellRing size={22} />, title: 'Smart incidents', text: 'Sustained breaches open incidents automatically — no alert spam, auto-resolve on recovery.' },
+  { icon: <Radio size={22} />, title: 'GSM SMS fallback', text: 'Critical alerts still fire over SIM800L when Wi-Fi is down.' },
+  { icon: <LineChart size={22} />, title: '24h history', text: 'Per-unit charts so drift is spotted before it becomes a failure.' },
+  { icon: <ShieldCheck size={22} />, title: 'Role-based access', text: 'Admin, Operator and Technician roles keep duties cleanly separated.' },
+  { icon: <MessageSquareText size={22} />, title: 'Maintenance notes', text: 'Full audit trail of inspections, repairs and resolutions.' },
 ]
 
-const steps = [
-  {
-    n: '01',
-    icon: <Cpu size={20} />,
-    title: 'Sense',
-    text: 'ESP32 reads DHT11, BMP180, ACS712 and water sensors every 60 seconds on the shelf, inside the cold room or under the unit.',
-  },
-  {
-    n: '02',
-    icon: <Radio size={20} />,
-    title: 'Transmit',
-    text: 'Readings publish over MQTT as they happen. If connectivity drops, the device buffers locally and replays on reconnect.',
-  },
-  {
-    n: '03',
-    icon: <Activity size={20} />,
-    title: 'Respond',
-    text: 'The dashboard shows live status, threshold rules open incidents, and operators acknowledge, resolve and escalate — by app or SMS.',
-  },
-]
-
-const roles = [
-  { role: 'Admin', who: 'System owner', can: 'Users, assets, devices, thresholds, full visibility' },
-  { role: 'Operator', who: 'Facility staff', can: 'Live assets, alerts, acknowledge & resolve incidents' },
-  { role: 'Technician', who: 'Maintenance', can: 'History, diagnostics, maintenance notes' },
+const slides = [
+  { src: '/images/village_reach.jpg', alt: 'Vaccine cold chain', caption: 'The cold chain starts at the shelf' },
+  { src: '/images/ghana_vaccine.jpg', alt: 'Vaccine preparation in Ghana', caption: 'Every dose depends on a working unit' },
+  { src: '/images/ethiopia_vaccine.jpg', alt: 'Vaccine preparation in Ethiopia', caption: 'Last-mile delivery needs last-mile monitoring' },
+  { src: '/images/cold_room.jpg', alt: 'Cold storage room', caption: 'Every unit under one view' },
+  { src: '/images/africa.png', alt: 'Map of Africa', caption: 'Built for Africa, starting with Kenya' },
 ]
 
 export function LandingPage() {
   const { user } = useAuth()
   const [slide, setSlide] = useState(0)
+  const [quoteSent, setQuoteSent] = useState(false)
+  const [form, setForm] = useState({ name: '', phone: '', unit: 'Pharmacy / dispensary unit', need: 'Ongoing monitoring' })
 
-  useEffect(() => {
-    const t = setInterval(() => setSlide((s) => (s + 1) % slides.length), 5000)
-    return () => clearInterval(t)
-  }, [])
+  function onQuote(e: FormEvent) {
+    e.preventDefault()
+    const body = encodeURIComponent(
+      `ColdGuard quote request\nName: ${form.name}\nPhone: ${form.phone}\nUnit type: ${form.unit}\nNeed: ${form.need}`,
+    )
+    window.location.href = `mailto:hello@coldguard.local?subject=ColdGuard%20quote&body=${body}`
+    setQuoteSent(true)
+  }
 
   return (
-    <div className="landing">
-      <header className="landing-nav">
-        <div className="landing-nav-inner">
+    <div className="landing rv">
+      {/* NAV */}
+      <header className="rv-nav">
+        <div className="rv-nav-inner">
           <Link to="/" className="landing-brand">
-            <div className="brand-mark">
-              <Snowflake size={20} />
-            </div>
-            <div className="brand-text">
-              <strong>ColdGuard</strong>
-              <span>Cold-chain intelligence</span>
-            </div>
+            <div className="brand-mark"><Snowflake size={20} /></div>
+            <div className="brand-text"><strong>COLDGUARD</strong><span>Cold-chain monitoring</span></div>
           </Link>
           <nav className="landing-links">
-            <a href="#problem">The problem</a>
-            <a href="#platform">Platform</a>
-            <a href="#how">How it works</a>
-            <a href="#roles">Roles</a>
+            <a href="#units">Units</a>
+            <a href="#features">Features</a>
+            <a href="#about">About</a>
+            <a href="#contact">Contact</a>
           </nav>
           <div className="landing-nav-cta">
             {user ? (
-              <Link className="btn" to="/">
-                Open dashboard <ArrowRight size={16} />
-              </Link>
+              <Link className="btn" to="/">Open dashboard <ArrowRight size={16} /></Link>
             ) : (
               <>
-                <Link className="btn secondary" to="/login">
-                  Sign in
-                </Link>
-                <Link className="btn" to="/login">
-                  Live demo <ArrowRight size={16} />
-                </Link>
+                <Link className="btn secondary" to="/login">Sign in</Link>
+                <Link className="btn" to="/login">Live demo <ArrowRight size={16} /></Link>
               </>
             )}
           </div>
         </div>
       </header>
 
-      <section className="landing-hero">
-        <div className="landing-hero-copy">
-          <span className="landing-eyebrow">
-            <Snowflake size={14} /> ESP32 · MQTT · GSM SMS
-          </span>
-          <h1>
-            Cold storage fails silently.
-            <br />
-            <span className="landing-h1-accent">We make it speak up.</span>
-          </h1>
+      {/* HERO */}
+      <section className="rv-hero">
+        <div className="rv-hero-copy">
+          <span className="landing-eyebrow"><Snowflake size={14} /> Your cold chain starts here</span>
+          <h1>Smooth, simple, stress-free cold storage monitoring.</h1>
           <p className="landing-sub">
-            ColdGuard monitors cold rooms, freezers and cold boxes across African
-            healthcare and food facilities — live telemetry, threshold
-            incidents, and GSM SMS alerts that still fire when Wi-Fi doesn't.
+            ColdGuard watches every unit around the clock — live readings, automatic
+            alerts, and SMS that still works when internet doesn't.
           </p>
-          <div className="landing-hero-actions">
-            <Link className="btn lg" to="/login">
-              {user ? 'Open dashboard' : 'Explore the live demo'} <ArrowRight size={17} />
-            </Link>
-            <a className="btn secondary lg" href="#problem">
-              See the problem
-            </a>
-          </div>
           <div className="landing-hero-meta">
-            <span><Boxes size={15} /> Cold rooms, freezers &amp; cold boxes</span>
-            <span><History size={15} /> 24h telemetry history</span>
-            <span><Users size={15} /> 3 role-based access levels</span>
+            <span><Star size={15} /> Rated #1 approach for cold-chain monitoring</span>
+            <span><Radio size={15} /> Daily, weekly &amp; long-term coverage</span>
+            <span><ShieldCheck size={15} /> No hidden fees — ever</span>
+            <span><Boxes size={15} /> Every unit type &amp; budget</span>
           </div>
         </div>
-        <div className="landing-hero-visual">
-          <div className="landing-hero-card">
-            <img src="/images/village_reach.jpg" alt="Vaccine cold chain storage in Mozambique" />
-            <div className="landing-float landing-float-temp">
-              <Thermometer size={16} />
-              <div>
-                <strong>4.2°C</strong>
-                <span>Pharmacy Cold Unit A · live</span>
-              </div>
-            </div>
-            <div className="landing-float landing-float-incident">
-              <BellRing size={16} />
-              <div>
-                <strong>Critical</strong>
-                <span>Vaccine Freezer B · −10.2°C</span>
-              </div>
-            </div>
+
+        {/* QUOTE FORM */}
+        <form className="rv-quote" onSubmit={onQuote}>
+          <h3>Get a quote</h3>
+          <p className="rv-quote-sub">Tell us about your facility — we reply with a no-obligation quote.</p>
+          <div className="field"><label>Name</label><input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Your name" /></div>
+          <div className="field"><label>Contact number</label><input required value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})} placeholder="+254 7XX XXX XXX" /></div>
+          <div className="field">
+            <label>Unit type</label>
+            <select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})}>
+              <option>Pharmacy / dispensary unit</option>
+              <option>Vaccine freezer</option>
+              <option>Cold room</option>
+              <option>Cold box / portable</option>
+              <option>Multiple units</option>
+            </select>
           </div>
-        </div>
+          <div className="field">
+            <label>How long do you need monitoring?</label>
+            <select value={form.need} onChange={e=>setForm({...form,need:e.target.value})}>
+              <option>Pilot (1–3 months)</option>
+              <option>Ongoing monitoring</option>
+              <option>Full facility rollout</option>
+            </select>
+          </div>
+          <button className="btn" type="submit">Request a quote <ArrowRight size={16} /></button>
+          {quoteSent && <p className="rv-quote-ok">Opening your email app — quote request drafted.</p>}
+          <div className="rv-quote-contact">
+            <span><Mail size={14} /> hello@coldguard.local</span>
+            <span><Phone size={14} /> +254 700 000 000</span>
+            <span><MapPin size={14} /> Nairobi, Kenya</span>
+          </div>
+        </form>
       </section>
 
-      <section className="landing-stats">
-        <div className="landing-stat">
-          <strong>6</strong>
-          <span>Sensor channels per unit</span>
-        </div>
-        <div className="landing-stat">
-          <strong>60s</strong>
-          <span>Sampling interval</span>
-        </div>
-        <div className="landing-stat">
-          <strong>3</strong>
-          <span>User roles, zero ambiguity</span>
-        </div>
-        <div className="landing-stat">
-          <strong>24/7</strong>
-          <span>Monitoring &amp; alerting</span>
-        </div>
+      {/* TRUSTED STRIP */}
+      <section className="rv-trusted">
+        <p>Trusted by facilities that cannot afford silent failures</p>
       </section>
 
-      <section id="problem" className="landing-section">
+      {/* UNITS / FLEET */}
+      <section id="units" className="landing-section">
         <div className="landing-section-head">
-          <span className="landing-eyebrow">The problem</span>
-          <h2>When a cold unit drifts, nobody gets the memo</h2>
-          <p>
-            Across Kenyan hospitals, county clinics, pharmacies and food hubs
-            — and the wider African cold chain — failures are almost always
-            discovered too late.
-          </p>
+          <span className="landing-eyebrow">Our units</span>
+          <h2>Monitoring hardware for every cold application</h2>
+          <p>Pick the right ColdGuard unit for your space — all share the same dashboard and alert engine.</p>
         </div>
-        <div className="landing-ps">
-          <div className="landing-problem">
-            {problems.map((p) => (
-              <article key={p.title} className="landing-ps-card">
-                <div className="landing-feature-icon">{p.icon}</div>
-                <h3>{p.title}</h3>
-                <p>{p.text}</p>
-              </article>
-            ))}
-          </div>
-          <div className="landing-solution">
-            <img src="/images/ghana_vaccine.jpg" alt="Nurse preparing a COVID-19 vaccine in Ghana" />
-            <div className="landing-solution-copy">
-              <span className="landing-eyebrow">The solution</span>
-              <h3>ColdGuard watches every unit, all the time</h3>
-              <p>
-                An ESP32 on each cold unit reads temperature, humidity, pressure,
-                compressor current and leaks — publishing over MQTT and raising
-                incidents the moment readings leave safe bounds. If Wi-Fi dies,
-                critical conditions still trigger SMS over GSM.
-              </p>
-              <Link className="btn" to="/login">
-                See it working <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
+        <div className="rv-units">
+          {units.map((u) => (
+            <article key={u.name} className="rv-unit">
+              <div className="rv-unit-top">
+                <div className="landing-feature-icon"><Cpu size={20} /></div>
+                <span className="rv-unit-tag">{u.tag}</span>
+              </div>
+              <h3>{u.name}</h3>
+              <p>{u.desc}</p>
+              <Link className="btn secondary sm" to="/login">See live demo <ArrowRight size={14} /></Link>
+            </article>
+          ))}
         </div>
       </section>
 
+      {/* SLIDER */}
       <section className="landing-slider" aria-label="Cold-chain in Africa">
         <div className="landing-slider-track" style={{ transform: `translateX(-${slide * 100}%)` }}>
           {slides.map((s) => (
@@ -291,41 +186,47 @@ export function LandingPage() {
             </figure>
           ))}
         </div>
-        <button
-          className="landing-slider-btn prev"
-          aria-label="Previous image"
-          onClick={() => setSlide((s) => (s - 1 + slides.length) % slides.length)}
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <button
-          className="landing-slider-btn next"
-          aria-label="Next image"
-          onClick={() => setSlide((s) => (s + 1) % slides.length)}
-        >
-          <ChevronRight size={20} />
-        </button>
+        <button className="landing-slider-btn prev" aria-label="Previous" onClick={()=>setSlide((s)=>(s-1+slides.length)%slides.length)}><ChevronLeft size={20}/></button>
+        <button className="landing-slider-btn next" aria-label="Next" onClick={()=>setSlide((s)=>(s+1)%slides.length)}><ChevronRight size={20}/></button>
         <div className="landing-slider-dots">
-          {slides.map((_, i) => (
-            <button
-              key={i}
-              className={`landing-dot ${i === slide ? 'active' : ''}`}
-              aria-label={`Go to slide ${i + 1}`}
-              onClick={() => setSlide(i)}
-            />
-          ))}
+          {slides.map((_,i)=>(<button key={i} className={`landing-dot ${i===slide?'active':''}`} aria-label={`Slide ${i+1}`} onClick={()=>setSlide(i)}/>))}
         </div>
       </section>
 
-      <section id="platform" className="landing-section">
+      {/* ABOUT */}
+      <section id="about" className="landing-section rv-about">
         <div className="landing-section-head">
-          <span className="landing-eyebrow">Platform</span>
-          <h2>Built for the realities of African cold storage</h2>
-          <p>
-            Power cuts, weak signal and remote sites are the norm. ColdGuard is
-            designed so a single unit failure never becomes a silent
-            vaccine spoilage event.
-          </p>
+          <span className="landing-eyebrow">About us</span>
+          <h2>Driven by a belief that monitoring should be effortless</h2>
+        </div>
+        <div className="rv-about-grid">
+          <div>
+            <h3>What began as a hackathon project</h3>
+            <p>
+              ColdGuard started at HACKFEST MKSU with one question: why do cold units
+              fail silently across Africa? We built the full stack — ESP32 firmware,
+              MQTT pipeline, FastAPI backend, React dashboard and GSM SMS fallback —
+              in weeks, and it works end-to-end today.
+            </p>
+            <p>
+              Our mission is simple: every facility that stores vaccines, medicine or
+              food deserves monitoring that is affordable, offline-capable and honest.
+            </p>
+          </div>
+          <div className="rv-about-stats">
+            <div className="landing-stat"><strong>6</strong><span>Sensor channels</span></div>
+            <div className="landing-stat"><strong>60s</strong><span>Sampling interval</span></div>
+            <div className="landing-stat"><strong>3</strong><span>User roles</span></div>
+            <div className="landing-stat"><strong>24/7</strong><span>Monitoring</span></div>
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="features" className="landing-section">
+        <div className="landing-section-head">
+          <span className="landing-eyebrow">Features</span>
+          <h2>Everything a cold-chain team needs</h2>
         </div>
         <div className="landing-features">
           {features.map((f) => (
@@ -338,69 +239,34 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="how" className="landing-section landing-how">
+      {/* CONTACT */}
+      <section id="contact" className="landing-section rv-contact">
         <div className="landing-section-head">
-          <span className="landing-eyebrow">How it works</span>
-          <h2>From sensor to SMS in three steps</h2>
+          <span className="landing-eyebrow">Contact us</span>
+          <h2>Talk to the team</h2>
+          <p>Questions about units, pricing or pilots — send us a message.</p>
         </div>
-        <div className="landing-steps">
-          {steps.map((s) => (
-            <article key={s.n} className="landing-step">
-              <div className="landing-step-top">
-                <span className="landing-step-num">{s.n}</span>
-                <div className="landing-feature-icon">{s.icon}</div>
-              </div>
-              <h3>{s.title}</h3>
-              <p>{s.text}</p>
-            </article>
-          ))}
+        <form className="rv-contact-form" onSubmit={onQuote}>
+          <div className="field"><label>Name</label><input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})} /></div>
+          <div className="field"><label>Email address</label><input type="email" placeholder="you@facility.org" /></div>
+          <div className="field" style={{gridColumn:'1/-1'}}><label>Leave a message</label><textarea rows={4} placeholder="Tell us about your cold storage needs…" /></div>
+          <button className="btn" type="submit">Submit <ArrowRight size={16} /></button>
+        </form>
+        <div className="rv-contact-info">
+          <h3>ColdGuard</h3>
+          <p><Mail size={15}/> hello@coldguard.local</p>
+          <p><Phone size={15}/> +254 700 000 000</p>
+          <p><MapPin size={15}/> Nairobi, Kenya</p>
         </div>
-      </section>
-
-      <section id="roles" className="landing-section">
-        <div className="landing-section-head">
-          <span className="landing-eyebrow">Access control</span>
-          <h2>Everyone sees what they need — nothing more</h2>
-        </div>
-        <div className="landing-roles">
-          {roles.map((r) => (
-            <article key={r.role} className="landing-role">
-              <h3>{r.role}</h3>
-              <span className="landing-role-who">{r.who}</span>
-              <p>{r.can}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-cta">
-        <div>
-          <h2>See it live — no hardware required</h2>
-          <p>
-            The demo dashboard ships with seeded cold units, a freezer excursion
-            and a device-offline scenario. Sign in and explore.
-          </p>
-        </div>
-        <Link className="btn lg light" to="/login">
-          Open live demo <ArrowRight size={17} />
-        </Link>
       </section>
 
       <footer className="landing-footer">
         <div className="landing-footer-inner">
           <div className="landing-brand">
-            <div className="brand-mark">
-              <Snowflake size={18} />
-            </div>
-            <div className="brand-text">
-              <strong>ColdGuard</strong>
-              <span>Cold-chain intelligence</span>
-            </div>
+            <div className="brand-mark"><Snowflake size={18} /></div>
+            <div className="brand-text"><strong>COLDGUARD</strong><span>Cold-chain monitoring</span></div>
           </div>
-          <p>
-            ESP32 edge sensing · MQTT telemetry · threshold incidents · GSM SMS
-            fallback. Built for hackathon demonstration.
-          </p>
+          <p>ESP32 edge sensing · MQTT telemetry · threshold incidents · GSM SMS fallback. Built for hackathon demonstration.</p>
           <span className="landing-footer-copy">© 2026 ColdGuard · HACKFEST MKSU</span>
         </div>
       </footer>
