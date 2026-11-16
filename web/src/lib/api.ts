@@ -27,6 +27,21 @@ interface ApiOptions {
   body?: unknown
 }
 
+function formatDetail(detail: unknown): string {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    const parts = detail.map((item) => {
+      if (item && typeof item === 'object' && 'msg' in item) {
+        return String((item as { msg: unknown }).msg)
+      }
+      return typeof item === 'string' ? item : JSON.stringify(item)
+    })
+    return parts.filter(Boolean).join('; ') || 'Request failed'
+  }
+  if (detail && typeof detail === 'object') return JSON.stringify(detail)
+  return String(detail)
+}
+
 export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -46,7 +61,7 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
     let message = `Request failed (${res.status})`
     try {
       const data = (await res.json()) as { detail?: unknown }
-      if (data?.detail) message = String(data.detail)
+      if (data?.detail !== undefined) message = formatDetail(data.detail)
     } catch {
       // non-JSON error body
     }
