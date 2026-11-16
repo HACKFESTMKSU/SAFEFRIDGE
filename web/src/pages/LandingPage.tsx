@@ -11,9 +11,9 @@ const manifesto = [
 ]
 
 const events = [
-  { img: '/images/village_reach.jpg', place: 'NAIROBI', title: 'ColdGuard Pilot — County Cold Rooms', date: 'Q1 2026' },
-  { img: '/images/ghana_vaccine.jpg', place: 'MOMBASA', title: 'Pharmacy Chain Rollout — 12 Stores', date: 'Q2 2026' },
-  { img: '/images/cold_room.jpg', place: 'KISUMU', title: 'Food Hub Deployment — Fresh Produce', date: 'Q3 2026' },
+  { img: '/images/village_reach.jpg', place: 'NAIROBI', title: 'HACKFEST MKSU Build — First Working Prototype', date: 'Nov 2026' },
+  { img: '/images/pharmacy_store.jpg', place: 'LAMU', title: 'Chemist & Dispensary Monitoring — Pilot Site', date: 'Planned' },
+  { img: '/images/produce_market.jpg', place: 'KISUMU', title: 'Food Hub Deployment — Fresh Produce', date: 'Planned' },
 ]
 
 const features = [
@@ -35,7 +35,7 @@ const slides = [
   { src: '/images/village_reach.jpg', alt: 'Cold chain delivery', caption: 'Protecting the cold chain from the first mile' },
   { src: '/images/ghana_vaccine.jpg', alt: 'Vaccine preparation', caption: 'Every dose depends on a working cold unit' },
   { src: '/images/ethiopia_vaccine.jpg', alt: 'Health worker with vaccines', caption: 'Last-mile delivery needs last-mile monitoring' },
-  { src: '/images/cold_room.jpg', alt: 'Cold storage room', caption: 'Every unit under one view' },
+  { src: '/images/produce_market.jpg', alt: 'Fresh vegetable market in Kiambu, Kenya', caption: 'Fresh produce deserves fresh storage' },
   { src: '/images/africa.png', alt: 'Map of Africa', caption: 'Built for Africa, starting with Kenya' },
 ]
 
@@ -84,8 +84,8 @@ export function LandingPage() {
         <div className="rv-hero-copy">
           <h1>It's time.<br />Guard every<br />degree.</h1>
           <p className="landing-sub">
-            Sign up to monitor the cold storage your medicines, vaccines and
-            fresh food depend on — and end silent spoilage for good.
+            A hackathon-built IoT platform that monitors the cold storage your
+            medicines, vaccines and fresh food depend on — working end-to-end today.
           </p>
         </div>
         <div className="rv-brush-card">
@@ -128,7 +128,7 @@ export function LandingPage() {
         </div>
         <div className="rv-manifesto-card">
           <h2>ColdGuard</h2>
-          <p className="rv-manifesto-sub">Sisi ni walezi — we are the guardians</p>
+          <p className="rv-manifesto-sub">Sisi ni walezi — our hackathon manifesto</p>
           {manifesto.map((m, i) => <p key={i}>{m}</p>)}
           <div className="rv-manifesto-cta">
             <Link className="btn dark square" to="/login">Live demo</Link>
@@ -174,7 +174,7 @@ export function LandingPage() {
       {/* EVENTS / DEPLOYMENTS — dark section */}
       <section id="events" className="rv-events">
         <div className="landing-section-head">
-          <h2>Deployments</h2>
+          <h2>Build &amp; Roadmap</h2>
         </div>
         <div className="rv-events-track">
           {events.map((e) => (
@@ -219,7 +219,7 @@ export function LandingPage() {
           <button className="btn" type="submit">Submit</button>
         </form>
         <div className="rv-contact-info">
-          <img src="/images/cold_room.jpg" alt="Cold storage room" className="rv-contact-img" />
+          <img src="/images/pharmacy_store.jpg" alt="A Kenyan chemist serving a customer" className="rv-contact-img" />
           <h3>ColdGuard</h3>
           <p>hello@coldguard.local</p>
           <p>+254 700 000 000</p>
@@ -232,7 +232,7 @@ export function LandingPage() {
         <nav className="rv-footer-links">
           <a href="#manifesto">About</a><a href="#units">Units</a><a href="#events">Deployments</a><a href="#contact">Contact</a><Link to="/login">Sign in</Link>
         </nav>
-        <p className="rv-footer-copy">© 2026 ColdGuard · HACKFEST MKSU · Privacy &amp; Terms</p>
+        <p className="rv-footer-copy">© 2026 ColdGuard · HACKFEST MKSU · Team ColdGuard</p>
       </footer>
     </div>
   )
