@@ -1994,3 +1994,299 @@ table.data td.wrap {
   font-size: 0.78rem;
   color: var(--ink-muted);
 }
+
+/* ---------- Linda-style components ---------- */
+
+.landing .brand-badge {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: var(--brand);
+  padding: 0.25rem 0.8rem;
+  display: inline-block;
+  line-height: 1.1;
+}
+
+.landing .btn.dark {
+  background: var(--ink);
+  color: #fff;
+}
+.landing .btn.dark:hover { background: #000; }
+
+.landing .btn.square { border-radius: 4px; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.08em; }
+
+/* Hero brush-frame stat card */
+.rv-brush-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 2.2rem 2rem;
+  text-align: center;
+  position: relative;
+  box-shadow: var(--shadow);
+}
+.rv-brush-card::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border: 3px solid var(--ink);
+  transform: rotate(-1.2deg);
+  pointer-events: none;
+  z-index: -1;
+}
+.rv-brush-card h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0 0 0.6rem;
+}
+.rv-brush-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 5rem;
+  color: var(--brand);
+  line-height: 1;
+}
+.rv-brush-sub {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  margin: 0.3rem 0 1.2rem;
+}
+.rv-brush-card .btn { display: block; margin-bottom: 0.8rem; }
+.rv-brush-link {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+/* Paybill-style strip */
+.rv-paystrip {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+}
+.rv-paystrip-badge {
+  background: #57b947;
+  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  padding: 0.4rem 0.9rem;
+  text-transform: uppercase;
+}
+.rv-paystrip-text {
+  flex: 1;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.9rem;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.rv-paystrip .btn { border-radius: 4px; }
+
+/* Wide media banner */
+.rv-banner {
+  max-width: 1180px;
+  margin: 0 auto 3rem;
+  padding: 0 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.rv-banner .landing-slider-track {
+  display: flex;
+  transition: transform 0.5s ease;
+}
+.rv-banner-slide {
+  flex: 0 0 100%;
+  margin: 0;
+  position: relative;
+  height: 420px;
+}
+.rv-banner-slide img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.rv-banner-slide figcaption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2rem;
+  background: linear-gradient(transparent, rgba(17,24,39,0.75));
+  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1rem;
+}
+.rv-banner-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.9);
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  z-index: 2;
+}
+.rv-banner-btn.prev { left: 2rem; }
+.rv-banner-btn.next { right: 2rem; }
+.rv-banner-dots {
+  position: absolute;
+  bottom: 0.9rem;
+  right: 2rem;
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* Manifesto — photo bleeds out of card */
+.rv-manifesto {
+  max-width: 1100px;
+  margin: 0 auto 4rem;
+  padding: 0 1.5rem;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: center;
+  position: relative;
+}
+.rv-manifesto-photo {
+  position: relative;
+  z-index: 2;
+  margin-right: -3rem;
+}
+.rv-manifesto-photo img {
+  width: 100%;
+  height: 520px;
+  object-fit: cover;
+  display: block;
+}
+.rv-manifesto-card {
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  padding: 3rem 2.6rem 3rem 4.6rem;
+}
+.rv-manifesto-card h2 {
+  font-size: clamp(2.4rem, 5vw, 3.8rem);
+}
+.rv-manifesto-sub {
+  font-family: 'Space Grotesk', sans-serif;
+  color: var(--brand);
+  font-weight: 600;
+  margin-top: -0.4rem;
+}
+.rv-manifesto-card p {
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.75;
+  margin: 0 0 1rem;
+}
+.rv-manifesto-card i {
+  font-family: 'Permanent Marker', cursive;
+  font-style: normal;
+  font-size: 0.92em;
+  color: var(--brand);
+}
+.rv-manifesto-cta { display: flex; gap: 0.8rem; margin-top: 1.4rem; }
+.rv-manifesto-cta .btn { padding: 0.8rem 1.6rem; }
+
+/* Events — dark section */
+.rv-events {
+  background: #080c13;
+  padding: 4rem 1.5rem;
+  margin-bottom: 0;
+}
+.rv-events .landing-section-head h2 {
+  color: #fff;
+  text-align: center;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+}
+.rv-events-track {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.4rem;
+}
+.rv-event-card {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #1e2837;
+  background: #0e1524;
+}
+.rv-event-card img {
+  width: 100%;
+  height: 320px;
+  object-fit: cover;
+  display: block;
+  opacity: 0.85;
+}
+.rv-event-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.4rem;
+  background: linear-gradient(transparent, rgba(8,12,19,0.95));
+}
+.rv-event-place {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  color: var(--amber);
+}
+.rv-event-overlay h3 {
+  color: #fff;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.7rem;
+  letter-spacing: 0.02em;
+  margin: 0.3rem 0;
+  text-transform: uppercase;
+}
+.rv-event-date {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* Footer */
+.rv-footer {
+  background: #080c13;
+  border-top: 1px solid #1e2837;
+  padding: 3rem 1.5rem 2rem;
+  text-align: center;
+}
+.rv-footer .brand-badge { margin-bottom: 1.4rem; }
+.rv-footer-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.4rem;
+  margin-bottom: 1.2rem;
+}
+.rv-footer-links a {
+  color: var(--brand);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.rv-footer-copy { color: #6b7280; font-size: 0.8rem; }
+
+@media (max-width: 900px) {
+  .rv-manifesto { grid-template-columns: 1fr; }
+  .rv-manifesto-photo { margin-right: 0; }
+  .rv-manifesto-card { padding: 2rem; }
+  .rv-hero { grid-template-columns: 1fr; }
+}
