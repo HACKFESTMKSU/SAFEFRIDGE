@@ -47,10 +47,10 @@ export interface Device {
 
 export interface TelemetryReading {
   timestamp: string
-  temperature_c: number
-  humidity_percent: number
-  current_a: number
-  water_level: number
+  temperature_c: number | null
+  humidity_percent: number | null
+  current_a: number | null
+  water_level: number | null
   water_wet: boolean
   quality?: string
 }

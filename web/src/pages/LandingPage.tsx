@@ -266,15 +266,8 @@ export function LandingPage() {
             <div className="lp-head" data-aos="fade-up">
               <h2 className="lp-h2">Sense. Send. Decide. Act.</h2>
               <p>
-<<<<<<< HEAD
-                An ESP32 on each fridge reads temperature, humidity,
-                compressor current and leaks — publishing over MQTT and raising
-                incidents the moment readings leave safe bounds. If Wi-Fi dies,
-                critical conditions still trigger SMS over GSM.
-=======
                 Every unit runs the same loop around the clock. When the Wi-Fi drops, the alert still gets out
                 by SMS.
->>>>>>> main
               </p>
             </div>
             <div className="lp-pipe" data-aos="fade-up">

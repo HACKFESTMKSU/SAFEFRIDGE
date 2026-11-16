@@ -16,16 +16,23 @@ export function tsMs(iso: string): number {
   return parseTs(iso).getTime()
 }
 
-export function fmtTemp(v: number) {
+export function fmtTemp(v: number | null | undefined) {
+  if (v == null || !Number.isFinite(v)) return '—'
   return `${v.toFixed(1)}°C`
 }
 
-export function fmtPct(v: number) {
+export function fmtPct(v: number | null | undefined) {
+  if (v == null || !Number.isFinite(v)) return '—'
   return `${Math.round(v)}%`
 }
 
-export function fmtAmps(v: number) {
+export function fmtAmps(v: number | null | undefined) {
+  if (v == null || !Number.isFinite(v)) return '—'
   return `${v.toFixed(2)} A`
+}
+
+export function fmtPressure(v: number) {
+  return `${Math.round(v)} hPa`
 }
 
 export function fmtWhen(iso: string) {

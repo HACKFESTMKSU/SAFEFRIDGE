@@ -13,6 +13,7 @@ import {
   assetTypeLabel,
   fmtAmps,
   fmtPct,
+  fmtPressure,
   fmtRelative,
   fmtTemp,
   fmtWhen,
@@ -103,7 +104,7 @@ export function AssetDetailPage() {
             Temperature
           </div>
           <div className={`stat-value ${tone === 'crit' ? 'crit' : ''}`}>
-            {latest ? (
+            {latest?.temperature_c != null ? (
               <>
                 <CountUp value={latest.temperature_c} decimals={1} />
                 <small>°C</small>
@@ -113,30 +114,52 @@ export function AssetDetailPage() {
             )}
           </div>
           <div className="stat-foot">
-            {toneLabel(tone)}, safe {t.tempMinC} to {t.tempMaxC}°C
+            {toneLabel(tone)} · sensor band {t.tempMinC}–{t.tempMaxC}°C
           </div>
         </div>
         <div className="stat">
           <div className="stat-label">Humidity</div>
-          <div className="stat-value">{latest ? fmtPct(latest.humidity_percent) : '—'}</div>
+          <div className="stat-value">
+            {latest?.humidity_percent != null ? fmtPct(latest.humidity_percent) : '—'}
+          </div>
           <div className="stat-foot">
+            Max {t.humidityMaxPercent ?? 80}%
             <Sparkline points={hums} domain={domain} height={28} />
           </div>
         </div>
         <div className="stat">
-          <div className="stat-label">Compressor current</div>
-          <div className="stat-value">{latest ? fmtAmps(latest.current_a) : '—'}</div>
+          <div className="stat-label">
+            <span
+              className={`status-dot ${
+                latest?.water_level != null ? (latest.water_wet ? 'warn' : 'ok') : ''
+              }`}
+            />
+            Water level
+          </div>
+          <div className="stat-value">
+            {latest?.water_level != null ? (
+              <>
+                <CountUp value={latest.water_level} decimals={0} />
+                <small>%</small>
+              </>
+            ) : (
+              '—'
+            )}
+          </div>
           <div className="stat-foot">
-            <Sparkline points={amps} domain={domain} height={28} />
+            {latest?.water_level != null
+              ? `${latest.water_wet ? 'Wet' : 'Dry'} · alert at ≥${t.waterWetThreshold ?? 25}%`
+              : 'No reading yet'}
           </div>
         </div>
         <div className="stat">
-          <div className="stat-label">
-            <span className={`status-dot ${latest ? (latest.water_wet ? 'warn' : 'ok') : ''}`} />
-            Leak sensor
+          <div className="stat-label">Compressor current</div>
+          <div className="stat-value">
+            {latest?.current_a != null ? fmtAmps(latest.current_a) : '—'}
           </div>
-          <div className="stat-value">{latest ? (latest.water_wet ? 'Wet' : 'Dry') : '—'}</div>
-          <div className="stat-foot">{latest ? `Level ${latest.water_level}` : 'No reading yet'}</div>
+          <div className="stat-foot">
+            <Sparkline points={amps} domain={domain} height={28} />
+          </div>
         </div>
       </div>
 
@@ -176,7 +199,7 @@ export function AssetDetailPage() {
             height={320}
             domain={domain}
             live={Boolean(device?.online)}
-            band={{ min: t.tempMinC, max: t.tempMaxC, label: `Safe ${t.tempMinC} to ${t.tempMaxC}°C` }}
+            band={{ min: t.tempMinC, max: t.tempMaxC, label: `Sensor band ${t.tempMinC}–${t.tempMaxC}°C` }}
             thresholds={[
               { value: t.tempWarningC, tone: 'warn', label: `Warning ${t.tempWarningC}°C` },
               { value: t.tempCriticalC, tone: 'crit', label: `Critical ${t.tempCriticalC}°C` },
@@ -245,14 +268,18 @@ export function AssetDetailPage() {
             <h2>Rules and maintenance</h2>
           </div>
           <dl className="kv" style={{ marginBottom: 18 }}>
-            <dt>Safe range</dt>
+            <dt>Temp safe band</dt>
             <dd>
-              {t.tempMinC} to {t.tempMaxC}°C
+              {t.tempMinC}–{t.tempMaxC}°C (same °C the sensor publishes)
             </dd>
-            <dt>Warning at</dt>
-            <dd>above {t.tempWarningC}°C</dd>
-            <dt>Critical at</dt>
-            <dd>{t.tempCriticalC}°C or below {t.tempMinC}°C</dd>
+            <dt>Warning / critical</dt>
+            <dd>
+              ≥{t.tempWarningC}°C / ≥{t.tempCriticalC}°C or below {t.tempMinC}°C
+            </dd>
+            <dt>Humidity max</dt>
+            <dd>{t.humidityMaxPercent ?? 80}%</dd>
+            <dt>Water wet alert</dt>
+            <dd>≥{t.waterWetThreshold ?? 25}% level</dd>
             <dt>SMS recipients</dt>
             <dd>{asset.smsRecipients.join(', ') || 'None yet'}</dd>
           </dl>

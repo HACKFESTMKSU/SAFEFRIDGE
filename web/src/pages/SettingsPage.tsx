@@ -7,12 +7,12 @@ export function SettingsPage() {
   const [selectedId, setSelectedId] = useState(assets[0]?.id ?? '')
   const selected = assets.find((a) => a.id === selectedId)
 
-  const [tempMin, setTempMin] = useState(selected?.thresholds.tempMinC ?? 2)
-  const [tempMax, setTempMax] = useState(selected?.thresholds.tempMaxC ?? 8)
-  const [tempWarn, setTempWarn] = useState(selected?.thresholds.tempWarningC ?? 7)
-  const [tempCrit, setTempCrit] = useState(selected?.thresholds.tempCriticalC ?? 10)
-  const [humidity, setHumidity] = useState(selected?.thresholds.humidityMaxPercent ?? 70)
-  const [water, setWater] = useState(selected?.thresholds.waterWetThreshold ?? 500)
+  const [tempMin, setTempMin] = useState(selected?.thresholds.tempMinC ?? 18)
+  const [tempMax, setTempMax] = useState(selected?.thresholds.tempMaxC ?? 28)
+  const [tempWarn, setTempWarn] = useState(selected?.thresholds.tempWarningC ?? 30)
+  const [tempCrit, setTempCrit] = useState(selected?.thresholds.tempCriticalC ?? 35)
+  const [humidity, setHumidity] = useState(selected?.thresholds.humidityMaxPercent ?? 80)
+  const [water, setWater] = useState(selected?.thresholds.waterWetThreshold ?? 25)
   const [currentMin, setCurrentMin] = useState(selected?.thresholds.currentMinA ?? 0.3)
   const [sms, setSms] = useState(selected?.smsRecipients.join(', ') ?? '')
   const [saved, setSaved] = useState(false)
@@ -23,33 +23,38 @@ export function SettingsPage() {
     setTempMax(asset.thresholds.tempMaxC)
     setTempWarn(asset.thresholds.tempWarningC)
     setTempCrit(asset.thresholds.tempCriticalC)
-    setHumidity(asset.thresholds.humidityMaxPercent ?? 70)
-    setWater(asset.thresholds.waterWetThreshold ?? 500)
+    setHumidity(asset.thresholds.humidityMaxPercent ?? 80)
+    setWater(asset.thresholds.waterWetThreshold ?? 25)
     setCurrentMin(asset.thresholds.currentMinA ?? 0.3)
     setSms(asset.smsRecipients.join(', '))
     setSaved(false)
   }
 
-  function onSave(e: FormEvent) {
+  async function onSave(e: FormEvent) {
     e.preventDefault()
     if (!selected) return
-    updateThresholds(
-      selected.id,
-      {
-        tempMinC: tempMin,
-        tempMaxC: tempMax,
-        tempWarningC: tempWarn,
-        tempCriticalC: tempCrit,
-        humidityMaxPercent: humidity,
-        waterWetThreshold: water,
-        currentMinA: currentMin,
-      },
-      sms
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
-    )
-    setSaved(true)
+    setSaved(false)
+    try {
+      await updateThresholds(
+        selected.id,
+        {
+          tempMinC: tempMin,
+          tempMaxC: tempMax,
+          tempWarningC: tempWarn,
+          tempCriticalC: tempCrit,
+          humidityMaxPercent: humidity,
+          waterWetThreshold: water,
+          currentMinA: currentMin > 0 ? currentMin : undefined,
+        },
+        sms
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      )
+      setSaved(true)
+    } catch {
+      setSaved(false)
+    }
   }
 
   return (
@@ -58,8 +63,9 @@ export function SettingsPage() {
         <div>
           <h2>Thresholds & SMS</h2>
           <p>
-            Configure warning/critical temperature rules and SIM800L SMS
-            recipients for offline critical alerts.
+            Thresholds use the same units the sensor publishes: temperature °C,
+            humidity %, water level 0–100%. Set the safe band around real readings
+            so status stays clear.
           </p>
         </div>
       </div>
@@ -101,11 +107,11 @@ export function SettingsPage() {
               <h2 style={{ fontSize: '1rem' }}>{selected.name}</h2>
               <div className="field-row">
                 <div className="field">
-                  <label>Temp min (°C)</label>
+                  <label>Safe temp min (°C)</label>
                   <input type="number" step="0.1" value={tempMin} onChange={(e) => setTempMin(Number(e.target.value))} />
                 </div>
                 <div className="field">
-                  <label>Temp max (°C)</label>
+                  <label>Safe temp max (°C)</label>
                   <input type="number" step="0.1" value={tempMax} onChange={(e) => setTempMax(Number(e.target.value))} />
                 </div>
               </div>
@@ -125,8 +131,8 @@ export function SettingsPage() {
                   <input type="number" value={humidity} onChange={(e) => setHumidity(Number(e.target.value))} />
                 </div>
                 <div className="field">
-                  <label>Water wet threshold</label>
-                  <input type="number" value={water} onChange={(e) => setWater(Number(e.target.value))} />
+                  <label>Water wet ≥ (%)</label>
+                  <input type="number" min={0} max={100} value={water} onChange={(e) => setWater(Number(e.target.value))} />
                 </div>
               </div>
               <div className="field">
@@ -145,7 +151,9 @@ export function SettingsPage() {
                 Save settings
               </button>
               {saved ? (
-                <p style={{ color: 'var(--ok)', fontSize: '0.9rem' }}>Saved for this demo session.</p>
+                <p style={{ color: 'var(--ok)', fontSize: '0.9rem' }}>
+                  Saved. Dashboard bands now use these same units as the sensor.
+                </p>
               ) : null}
             </form>
           ) : (

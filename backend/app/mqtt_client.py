@@ -12,17 +12,18 @@ from sqlalchemy.orm import Session
 
 from .config import settings
 from .database import SessionLocal
-from .models import Device, Telemetry, utcnow
+from .models import Asset, Device, Telemetry, utcnow
 from . import rules
 
 logger = logging.getLogger("coldguard.mqtt")
 
 # Plausibility windows (FR-13): outside -> stored with quality='suspect'
+# water_level is stored as 0–100% (firmware water_level_percent).
 RANGES = {
     "temperature_c": (-40.0, 80.0),
     "humidity_percent": (0.0, 100.0),
     "current_a": (-1.0, 50.0),
-    "water_level": (0.0, 100000.0),
+    "water_level": (0.0, 100.0),
 }
 
 
@@ -32,8 +33,11 @@ class TelemetryPayload(BaseModel):
     temperature_c: float | None = None
     humidity_percent: float | None = None
     current_a: float | None = None
+    # Canonical field: 0–100%. Arduino also sends water_level_percent.
     water_level: float | None = None
-    water_wet: bool = False
+    water_level_percent: float | None = None
+    water_raw: float | None = None
+    water_wet: bool | None = None
     firmware_version: str | None = None
 
     model_config = {"populate_by_name": True}
@@ -45,6 +49,14 @@ class TelemetryPayload(BaseModel):
             return datetime.fromisoformat(v.replace("Z", "+00:00"))
         return v
 
+    def resolved_water_level(self) -> float | None:
+        """Prefer explicit percent fields; ignore raw ADC for storage."""
+        if self.water_level is not None:
+            return self.water_level
+        if self.water_level_percent is not None:
+            return self.water_level_percent
+        return None
+
 
 class StatusPayload(BaseModel):
     device_id: str | None = Field(default=None, alias="device_id")
@@ -55,11 +67,17 @@ class StatusPayload(BaseModel):
     model_config = {"populate_by_name": True}
 
 
-def _quality(payload: TelemetryPayload) -> str:
+def _quality(temperature_c, humidity_percent, current_a, water_level) -> str:
+    values = {
+        "temperature_c": temperature_c,
+        "humidity_percent": humidity_percent,
+        "current_a": current_a,
+        "water_level": water_level,
+    }
     for field, (lo, hi) in RANGES.items():
-        value = getattr(payload, field)
+        value = values.get(field)
         if value is not None and not (lo <= value <= hi):
-            logger.warning("Implausible %s=%s on %s", field, value, payload.device_id)
+            logger.warning("Implausible %s=%s", field, value)
             return "suspect"
     return "ok"
 
@@ -76,15 +94,44 @@ def handle_telemetry(payload: TelemetryPayload) -> None:
         if ts.tzinfo is None:
             ts = ts.replace(tzinfo=timezone.utc)
 
+        water_level = payload.resolved_water_level()
+        water_wet = bool(payload.water_wet) if payload.water_wet is not None else False
+        if water_level is not None and device.asset_id:
+            asset = db.get(Asset, device.asset_id)
+            if asset is not None and asset.water_wet_threshold is not None:
+                water_wet = water_wet or water_level >= asset.water_wet_threshold
+
+        # DHT11 often omits temp/humidity on a failed read. Carry forward the
+        # last good values so the dashboard never flashes a fake 0°C / 0%.
+        temperature_c = payload.temperature_c
+        humidity_percent = payload.humidity_percent
+        if temperature_c is None or humidity_percent is None:
+            prev = db.scalars(
+                select(Telemetry)
+                .where(Telemetry.device_id == payload.device_id)
+                .order_by(Telemetry.timestamp.desc())
+                .limit(1)
+            ).first()
+            if prev is not None:
+                if temperature_c is None:
+                    temperature_c = prev.temperature_c
+                if humidity_percent is None:
+                    humidity_percent = prev.humidity_percent
+
         row = Telemetry(
             device_id=payload.device_id,
             timestamp=ts,
-            temperature_c=payload.temperature_c,
-            humidity_percent=payload.humidity_percent,
+            temperature_c=temperature_c,
+            humidity_percent=humidity_percent,
             current_a=payload.current_a,
-            water_level=payload.water_level,
-            water_wet=payload.water_wet,
-            quality=_quality(payload),
+            water_level=water_level,
+            water_wet=water_wet,
+            quality=_quality(
+                temperature_c,
+                humidity_percent,
+                payload.current_a,
+                water_level,
+            ),
         )
         db.add(row)
 

@@ -1273,6 +1273,34 @@ table.data a:hover {
   min-width: 0;
 }
 
+.live-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 20px;
+  width: 100%;
+  max-width: 720px;
+}
+
+.live-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.live-metric-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.live-metric-foot {
+  font-size: 0.78rem;
+  color: var(--text-2);
+}
+
 .live-reading {
   display: flex;
   align-items: baseline;
@@ -1288,6 +1316,10 @@ table.data a:hover {
   color: var(--ink);
 }
 
+.live-value-sm {
+  font-size: 2.1rem;
+}
+
 .live-value.crit {
   color: var(--crit-ink);
 }
@@ -1295,6 +1327,12 @@ table.data a:hover {
 .live-meta {
   font-size: 0.84rem;
   color: var(--text-2);
+}
+
+@media (max-width: 720px) {
+  .live-metrics {
+    grid-template-columns: 1fr;
+  }
 }
 
 .live-controls {
@@ -1311,6 +1349,10 @@ table.data a:hover {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-top: 1px solid var(--line);
+}
+
+.multiples.multiples-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .multiple {
