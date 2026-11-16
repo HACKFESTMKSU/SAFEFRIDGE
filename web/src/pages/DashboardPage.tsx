@@ -13,7 +13,6 @@ import {
   fmtAgo,
   fmtAmps,
   fmtPct,
-  fmtPressure,
   fmtRelative,
   severityLabel,
   statusLabel,
@@ -47,8 +46,8 @@ export function DashboardPage() {
 
   const temps = useMemo(() => toSeries(rows, 'temperature_c'), [rows])
   const hums = useMemo(() => toSeries(rows, 'humidity_percent'), [rows])
+  const waters = useMemo(() => toSeries(rows, 'water_level'), [rows])
   const amps = useMemo(() => toSeries(rows, 'current_a'), [rows])
-  const hpa = useMemo(() => toSeries(rows, 'pressure_hpa'), [rows])
 
   const openIncidents = incidents
     .filter((i) => i.status !== 'resolved')
@@ -71,7 +70,9 @@ export function DashboardPage() {
       for (const r of getTelemetry(a.deviceId)) {
         if (tsMs(r.timestamp) < since) continue
         total += 1
-        if (r.temperature_c >= a.thresholds.tempMinC && r.temperature_c <= a.thresholds.tempMaxC) ok += 1
+        const temp = r.temperature_c
+        if (temp == null) continue
+        if (temp >= a.thresholds.tempMinC && temp <= a.thresholds.tempMaxC) ok += 1
       }
     }
     return total ? { pct: (ok / total) * 100, total } : null
@@ -179,24 +180,58 @@ export function DashboardPage() {
                       </option>
                     ))}
                   </select>
-                  <div className="live-reading">
-                    <span className={`live-value ${tone === 'crit' ? 'crit' : ''}`}>
-                      {latest ? (
-                        <>
-                          <CountUp value={latest.temperature_c} decimals={1} />
-                          °C
-                        </>
-                      ) : (
-                        '—'
-                      )}
-                    </span>
-                    <Badge tone={tone ?? 'neutral'} dot>
-                      {toneLabel(tone)}
-                    </Badge>
+                  <div className="live-metrics" aria-label="Live sensor readings">
+                    <div className="live-metric">
+                      <span className="live-metric-label">Temperature</span>
+                      <div className="live-reading">
+                        <span className={`live-value ${tone === 'crit' ? 'crit' : ''}`}>
+                          {latest?.temperature_c != null ? (
+                            <>
+                              <CountUp value={latest.temperature_c} decimals={1} />
+                              °C
+                            </>
+                          ) : (
+                            '—'
+                          )}
+                        </span>
+                        <Badge tone={tone ?? 'neutral'} dot>
+                          {toneLabel(tone)}
+                        </Badge>
+                      </div>
+                      <span className="live-metric-foot">
+                        Band {t.tempMinC}–{t.tempMaxC}°C
+                      </span>
+                    </div>
+                    <div className="live-metric">
+                      <span className="live-metric-label">Humidity</span>
+                      <div className="live-reading">
+                        <span className="live-value live-value-sm">
+                          {latest?.humidity_percent != null ? fmtPct(latest.humidity_percent) : '—'}
+                        </span>
+                      </div>
+                      <span className="live-metric-foot">Max {t.humidityMaxPercent ?? 80}%</span>
+                    </div>
+                    <div className="live-metric">
+                      <span className="live-metric-label">Water level</span>
+                      <div className="live-reading">
+                        <span className={`live-value live-value-sm ${latest?.water_wet ? 'crit' : ''}`}>
+                          {latest?.water_level != null ? fmtPct(latest.water_level) : '—'}
+                        </span>
+                        {latest?.water_level != null ? (
+                          <Badge tone={latest.water_wet ? 'warn' : 'ok'} dot>
+                            {latest.water_wet ? 'Wet' : 'Dry'}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <span className="live-metric-foot">
+                        Wet ≥{t.waterWetThreshold ?? 25}%
+                      </span>
+                    </div>
                   </div>
                   <span className="live-meta">
-                    Safe between {t.tempMinC} and {t.tempMaxC}°C.{' '}
-                    {latest ? `Last reading ${fmtRelative(latest.timestamp)}.` : 'Waiting for the first reading.'}
+                    {latest
+                      ? `Last update ${fmtRelative(latest.timestamp)}. Readings use the same units the device publishes.`
+                      : 'Waiting for the first reading.'}
                   </span>
                 </div>
                 <div className="live-controls">
@@ -217,7 +252,7 @@ export function DashboardPage() {
                   height={300}
                   domain={domain}
                   live={Boolean(device?.online)}
-                  band={{ min: t.tempMinC, max: t.tempMaxC, label: `Safe ${t.tempMinC} to ${t.tempMaxC}°C` }}
+                  band={{ min: t.tempMinC, max: t.tempMaxC, label: `Sensor band ${t.tempMinC}–${t.tempMaxC}°C` }}
                   thresholds={[
                     { value: t.tempWarningC, tone: 'warn', label: `Warning ${t.tempWarningC}°C` },
                     { value: t.tempCriticalC, tone: 'crit', label: `Critical ${t.tempCriticalC}°C` },
@@ -241,25 +276,31 @@ export function DashboardPage() {
                 />
               </div>
 
-              <div className="multiples">
+              <div className={`multiples${(latest?.current_a ?? 0) > 0.05 ? '' : ' multiples-2'}`}>
                 <Multiple
-                  label="Humidity"
-                  value={latest ? fmtPct(latest.humidity_percent) : '—'}
+                  label="Humidity trend"
+                  value={latest?.humidity_percent != null ? fmtPct(latest.humidity_percent) : '—'}
                   points={hums}
                   domain={domain}
                 />
                 <Multiple
-                  label="Compressor current"
-                  value={latest ? fmtAmps(latest.current_a) : '—'}
-                  points={amps}
+                  label="Water level trend"
+                  value={
+                    latest?.water_level != null
+                      ? `${fmtPct(latest.water_level)}${latest.water_wet ? ' · wet' : ' · dry'}`
+                      : '—'
+                  }
+                  points={waters}
                   domain={domain}
                 />
-                <Multiple
-                  label="Pressure"
-                  value={latest ? fmtPressure(latest.pressure_hpa) : '—'}
-                  points={hpa}
-                  domain={domain}
-                />
+                {latest?.current_a != null && latest.current_a > 0.05 ? (
+                  <Multiple
+                    label="Compressor current"
+                    value={fmtAmps(latest.current_a)}
+                    points={amps}
+                    domain={domain}
+                  />
+                ) : null}
               </div>
             </>
           ) : (
@@ -357,7 +398,7 @@ function UnitRow({ asset }: { asset: Asset }) {
       <td>{asset.location}</td>
       <td>
         <BandMeter
-          value={reading ? reading.temperature_c : null}
+          value={reading?.temperature_c ?? null}
           min={asset.thresholds.tempMinC}
           max={asset.thresholds.tempMaxC}
           tone={tone}

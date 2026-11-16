@@ -32,21 +32,21 @@ FIRMWARE_VERSION = "0.1.0"
 
 def telemetry_payload(args, tick: int) -> dict:
     wave = math.sin(tick / 6.0) * 0.5
-    temp = args.temp if args.temp is not None else round(4.2 + wave + random.uniform(-0.2, 0.2), 1)
-    water_level = random.randint(60, 140)
+    # Default to ambient lab temps (matches DHT11 demo), not fridge 4°C.
+    temp = args.temp if args.temp is not None else round(22.0 + wave + random.uniform(-0.3, 0.3), 1)
+    # water_level is 0–100% (same as Arduino water_level_percent)
+    water_level = random.randint(0, 12)
     if args.wet:
-        water_level = random.randint(650, 780)
+        water_level = random.randint(40, 85)
     return {
         "device_id": args.device,
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "temperature_c": temp,
         "humidity_percent": round(55 + math.sin(tick / 8.0) * 5, 0),
-        "bmp_temperature_c": round(24 + math.sin(tick / 10.0) * 1.0, 1),
-        "pressure_hpa": round(1012 + math.sin(tick / 12.0) * 2, 1),
         "current_a": round(1.1 + max(0.0, math.sin(tick / 5.0)) * 0.8, 2),
         "water_level": water_level,
-        "water_wet": water_level > 500,
-        "mq3_raw": random.randint(35, 65),
+        "water_level_percent": water_level,
+        "water_wet": water_level >= 25,
         "firmware_version": FIRMWARE_VERSION,
     }
 

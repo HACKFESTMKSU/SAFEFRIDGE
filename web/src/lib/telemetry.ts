@@ -13,12 +13,15 @@ export const RANGE_MS: Record<Range, number> = {
   '24h': 24 * 3_600_000,
 }
 
-type NumericKey = {
-  [K in keyof TelemetryReading]-?: TelemetryReading[K] extends number ? K : never
-}[keyof TelemetryReading]
-
-export function toSeries(rows: TelemetryReading[], key: NumericKey): ChartPoint[] {
-  return rows.map((r) => ({ t: tsMs(r.timestamp), v: r[key] }))
+export function toSeries(rows: TelemetryReading[], key: string): ChartPoint[] {
+  const out: ChartPoint[] = []
+  for (const r of rows) {
+    const v = (r as Record<string, unknown>)[key]
+    if (typeof v === 'number' && Number.isFinite(v)) {
+      out.push({ t: tsMs(r.timestamp), v })
+    }
+  }
+  return out
 }
 
 /** Incidents for one asset, as short labelled markers on its chart. */

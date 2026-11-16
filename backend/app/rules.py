@@ -177,7 +177,7 @@ def evaluate_telemetry(db: Session, device: Device, reading: Telemetry) -> None:
         breached = bool(reading.water_wet) or level >= asset.water_wet_threshold
         _maybe_incident(
             db, device, asset, "water", breached, "warning",
-            f"Water/leak detected under {asset.name} (level {level:.0f}, threshold {asset.water_wet_threshold:.0f}).",
+            f"Water/leak detected under {asset.name} (level {level:.0f}%, wet at ≥{asset.water_wet_threshold:.0f}%).",
             level, asset.water_wet_threshold, now,
         )
 

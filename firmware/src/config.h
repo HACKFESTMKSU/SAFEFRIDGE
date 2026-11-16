@@ -58,10 +58,7 @@
 /* Pin map (SRS §3 - do not change without rewiring)                   */
 /* ------------------------------------------------------------------ */
 #define PIN_DHT11        4     // DHT11 data (10k pull-up to 3.3V)
-#define PIN_I2C_SDA      21    // BMP180 SDA
-#define PIN_I2C_SCL      22    // BMP180 SCL
 #define PIN_WATER_AO     34    // Water sensor analog out (ADC1, Wi-Fi safe)
-#define PIN_MQ3_AO       35    // MQ-3 analog out (optional, ADC1)
 #define PIN_ACS712_OUT   36    // ACS712 OUT (ADC1)
 #define PIN_SIM800L_RX   16    // ESP32 RX2  <- SIM800L TXD  (GPIO16)
 #define PIN_SIM800L_TX   17    // ESP32 TX2  -> SIM800L RXD  (GPIO17)
@@ -77,9 +74,6 @@
 /* 0 = wet when raw >= threshold (pull-down module). Set 1 if the module
  * idles HIGH when dry (active-high output). */
 #define WATER_WET_INVERT     0
-
-/* MQ-3 (optional): report raw ADC only; no alerting per FR-11. */
-#define ENABLE_MQ3          1       // set 0 to skip reading entirely
 
 /* ACS712 current sensor.
  *  - Variant "5A" : sensitivity 185 mV/A  (most common blue module)
@@ -103,8 +97,6 @@
 #define TEMP_PLAUSIBLE_MAX_C    80.0f
 #define HUMID_PLAUSIBLE_MIN     0.0f
 #define HUMID_PLAUSIBLE_MAX   100.0f
-#define PRESSURE_PLAUSIBLE_MIN 300.0f   // hPa
-#define PRESSURE_PLAUSIBLE_MAX 1100.0f
 #define CURRENT_PLAUSIBLE_MAX_A 30.0f
 
 /* ------------------------------------------------------------------ */

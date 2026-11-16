@@ -15,8 +15,8 @@ export function AssetsPage() {
   const [name, setName] = useState('')
   const [type, setType] = useState<AssetType>('refrigerator')
   const [location, setLocation] = useState('')
-  const [tempMin, setTempMin] = useState(2)
-  const [tempMax, setTempMax] = useState(8)
+  const [tempMin, setTempMin] = useState(18)
+  const [tempMax, setTempMax] = useState(28)
 
   if (!user) return null
   const admin = canManageAssets(user.role)
@@ -36,8 +36,8 @@ export function AssetsPage() {
         tempMaxC: tempMax,
         tempWarningC: tempMax - 1,
         tempCriticalC: tempMax + 2,
-        humidityMaxPercent: 70,
-        waterWetThreshold: 500,
+        humidityMaxPercent: 80,
+        waterWetThreshold: 25,
       },
     }
     upsertAsset(asset)
@@ -84,7 +84,7 @@ export function AssetsPage() {
             </div>
             <div className="field-row">
               <div className="field">
-                <label>Temp min (°C)</label>
+                <label>Safe temp min (°C)</label>
                 <input
                   type="number"
                   value={tempMin}
@@ -92,7 +92,7 @@ export function AssetsPage() {
                 />
               </div>
               <div className="field">
-                <label>Temp max (°C)</label>
+                <label>Safe temp max (°C)</label>
                 <input
                   type="number"
                   value={tempMax}
@@ -135,7 +135,7 @@ export function AssetsPage() {
                     </td>
                     <td>{assetTypeLabel(asset.type)}</td>
                     <td>{asset.location}</td>
-                    <td className="mono">{reading ? fmtTemp(reading.temperature_c) : '—'}</td>
+                    <td className="mono">{fmtTemp(reading?.temperature_c)}</td>
                     <td>{device ? device.id : '—'}</td>
                     <td>
                       <Badge tone={asset.status === 'active' ? 'ok' : 'neutral'}>

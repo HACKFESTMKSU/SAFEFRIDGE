@@ -1,7 +1,7 @@
 /*
  * ColdGuard - ESP32 edge firmware
  * =================================
- * Reads DHT11 / BMP180 / water / ACS712 (+ optional MQ-3), publishes
+ * Reads DHT11 / water / ACS712, publishes
  * telemetry JSON over MQTT per SRS §7, buffers readings in LittleFS when
  * the link is down (FR-14), and sends critical GSM SMS via SIM800L when
  * Wi-Fi/MQTT is unavailable (FR-14a/FR-14b).
@@ -10,7 +10,7 @@
  * Monitor:  pio device monitor -b 115200
  *
  * Assumptions (see README):
- *  - ArduinoJson 7, PubSubClient 2.8, Adafruit DHT + BMP085 libs.
+ *  - ArduinoJson 7, PubSubClient 2.8, Adafruit DHT lib.
  *  - LittleFS partition present (default Arduino ESP32 partition scheme).
  *  - ACS712 "5A" variant, 185 mV/A, zero auto-calibrated at boot.
  */
@@ -25,7 +25,6 @@
 #include <ArduinoJson.h>
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
-#include <Adafruit_BMP085.h>
 #include <LittleFS.h>
 #include <time.h>
 #include <string.h>
@@ -36,7 +35,6 @@
 /* Globals                                                             */
 /* ================================================================== */
 DHT              dht(PIN_DHT11, DHT11);
-Adafruit_BMP085  bmp;
 
 #if MQTT_USE_TLS
 WiFiClientSecure tlsClient;
@@ -292,15 +290,14 @@ static void bufferInit() {
 /* Sensor acquisition                                                   */
 /* ================================================================== */
 struct Reading {
-  float tempC = NAN, humidity = NAN, bmpTempC = NAN, pressureHpa = NAN;
+  float tempC = NAN, humidity = NAN;
   float currentA = NAN;
-  int   waterRaw = 0, waterWet = 0, mq3Raw = 0;
+  int   waterRaw = 0, waterWet = 0;
   const char* quality = "ok";                    // FR-13 flag string
 };
 
 static bool plausibleTemp(float t) { return t >= TEMP_PLAUSIBLE_MIN_C && t <= TEMP_PLAUSIBLE_MAX_C; }
 static bool plausibleHumi(float h) { return h >= HUMID_PLAUSIBLE_MIN  && h <= HUMID_PLAUSIBLE_MAX; }
-static bool plausiblePres(float p) { return p >= PRESSURE_PLAUSIBLE_MIN && p <= PRESSURE_PLAUSIBLE_MAX; }
 static bool plausibleCurr(float a) { return a >= -0.5f && a <= CURRENT_PLAUSIBLE_MAX_A; }
 
 static void setQuality(Reading& r, const char* q) {
@@ -321,17 +318,6 @@ static void readSensors(Reading& r) {
   r.tempC = t; r.humidity = h;
   if (!isnan(t) && !plausibleTemp(t)) setQuality(r, "temp_implausible");
   if (!isnan(h) && !plausibleHumi(h)) setQuality(r, "humidity_implausible");
-
-  /* --- BMP180: pressure (hPa) + secondary temperature --- */
-  float bt = bmp.readTemperature();
-  float pr = bmp.readPressure();                 // Pascals (Adafruit BMP085)
-  if (!isnan(bt)) r.bmpTempC = bt;
-  if (!isnan(pr)) {
-    r.pressureHpa = pr / 100.0f;                 // Pa -> hPa
-    if (!plausiblePres(r.pressureHpa)) setQuality(r, "pressure_implausible");
-  } else {
-    setQuality(r, "bmp_fail");
-  }
 
   /* --- Water sensor (AO, GPIO34) --- */
   r.waterRaw = constrain(analogRead(PIN_WATER_AO), 0, WATER_LEVEL_MAX);
@@ -356,12 +342,6 @@ static void readSensors(Reading& r) {
     setQuality(r, "current_implausible");
   }
 
-  /* --- MQ-3 (optional, GPIO35): raw only, no alerting (FR-11) --- */
-#if ENABLE_MQ3
-  r.mq3Raw = analogRead(PIN_MQ3_AO);
-#else
-  r.mq3Raw = 0;
-#endif
 }
 
 /* Boot-time ACS712 zero-current calibration. Run with NO load connected
@@ -390,12 +370,9 @@ static void buildTelemetryJson(const Reading& r, JsonDocument& doc) {
   doc["timestamp"]          = iso8601utc();
   doc["temperature_c"]      = r.tempC;
   doc["humidity_percent"]   = r.humidity;
-  doc["bmp_temperature_c"]  = r.bmpTempC;
-  doc["pressure_hpa"]       = r.pressureHpa;
   doc["current_a"]          = r.currentA;
   doc["water_level"]        = r.waterRaw;
   doc["water_wet"]          = (r.waterWet == 1);
-  doc["mq3_raw"]            = r.mq3Raw;
   doc["firmware_version"]   = FIRMWARE_VERSION;
   doc["quality"]            = r.quality ? r.quality : "ok";
 }
@@ -571,11 +548,9 @@ void setup() {
   logMsg("BOOT", String("ColdGuard v") + FIRMWARE_VERSION + " device=" + DEVICE_ID);
 
   pinMode(PIN_WATER_AO, INPUT);
-  pinMode(PIN_MQ3_AO, INPUT);
   pinMode(PIN_ACS712_OUT, INPUT);
 
   dht.begin();
-  if (!bmp.begin()) logMsg("SENS", "BMP180 init failed - pressure will be null");
 
   mqtt.setCallback(mqttCallback);   // for coldguard/device/{id}/config pushes
   mqtt.setBufferSize(MQTT_BUFFER_SIZE);
@@ -625,9 +600,9 @@ void loop() {
     Reading r;
     readSensors(r);
 
-    Serial.printf("[SENS] t=%.1f h=%.1f bmpT=%.1f p=%.1f I=%.2f water=%d wet=%d mq3=%d q=%s\n",
-                  r.tempC, r.humidity, r.bmpTempC, r.pressureHpa,
-                  r.currentA, r.waterRaw, r.waterWet, r.mq3Raw,
+    Serial.printf("[SENS] t=%.1f h=%.1f I=%.2f water=%d wet=%d q=%s\n",
+                  r.tempC, r.humidity,
+                  r.currentA, r.waterRaw, r.waterWet,
                   r.quality ? r.quality : "ok");
 
     JsonDocument doc;                       // ArduinoJson 7: auto-sized

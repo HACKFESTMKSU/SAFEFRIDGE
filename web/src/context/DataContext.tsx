@@ -45,7 +45,8 @@ const DataContext = createContext<DataState | null>(null)
 
 const NO_SERIES: TelemetryReading[] = []
 
-const POLL_LIVE_MS = 5_000
+// Keep this under the Arduino publish interval (~1.5s) so water/temp feel live.
+const POLL_LIVE_MS = 1_500
 const POLL_META_MS = 15_000
 const POLL_FULL_MS = 60_000
 
@@ -54,16 +55,14 @@ function normDevice(d: Device): Device {
 }
 
 function normReading(r: TelemetryReading): TelemetryReading {
+  // Keep nulls as null — never coerce missing DHT fields to 0 (looks like Critical 0°C).
   return {
     ...r,
-    temperature_c: r.temperature_c ?? 0,
-    humidity_percent: r.humidity_percent ?? 0,
-    bmp_temperature_c: r.bmp_temperature_c ?? 0,
-    pressure_hpa: r.pressure_hpa ?? 0,
-    current_a: r.current_a ?? 0,
-    water_level: r.water_level ?? 0,
+    temperature_c: r.temperature_c ?? null,
+    humidity_percent: r.humidity_percent ?? null,
+    current_a: r.current_a ?? null,
+    water_level: r.water_level ?? null,
     water_wet: r.water_wet ?? false,
-    mq3_raw: r.mq3_raw ?? 0,
   }
 }
 
@@ -270,15 +269,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateThresholds = useCallback(
     async (assetId: string, thresholds: Thresholds, sms: string[]) => {
-      try {
-        const updated = await api<Asset>(`/assets/${assetId}/thresholds`, {
-          method: 'PATCH',
-          body: { ...thresholds, smsRecipients: sms },
-        })
-        setAssets((prev) => prev.map((a) => (a.id === assetId ? updated : a)))
-      } catch (err) {
-        console.error('updateThresholds failed', err)
-      }
+      const updated = await api<Asset>(`/assets/${assetId}/thresholds`, {
+        method: 'PATCH',
+        body: { ...thresholds, smsRecipients: sms },
+      })
+      setAssets((prev) => prev.map((a) => (a.id === assetId ? updated : a)))
     },
     [],
   )
