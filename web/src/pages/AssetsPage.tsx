@@ -50,7 +50,7 @@ export function AssetsPage() {
     <>
       <div className="page-intro">
         <div>
-          <h2 style={{ fontSize: '1.35rem' }}>Assets</h2>
+          <h2>Assets</h2>
           <p>Refrigerators, freezers, and cold boxes under monitoring.</p>
         </div>
         {admin ? (
@@ -129,7 +129,6 @@ export function AssetsPage() {
                     <td>
                       <Link
                         to={`/assets/${asset.id}`}
-                        style={{ fontWeight: 600, color: 'var(--accent-strong)' }}
                       >
                         {asset.name}
                       </Link>

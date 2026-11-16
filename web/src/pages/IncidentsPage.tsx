@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge } from '../components/ui/Badge'
+import { Segmented } from '../components/ui/Segmented'
 import { useData } from '../context/DataContext'
 import {
   fmtRelative,
@@ -24,20 +25,18 @@ export function IncidentsPage() {
     <>
       <div className="page-intro">
         <div>
-          <h2 style={{ fontSize: '1.35rem' }}>Incidents</h2>
+          <h2>Incidents</h2>
           <p>Threshold breaches and device issues. Acknowledge and resolve from the detail view.</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-          {(['all', 'open', 'acknowledged', 'resolved'] as const).map((f) => (
-            <button
-              key={f}
-              className={`btn sm ${filter === f ? '' : 'secondary'}`}
-              onClick={() => setFilter(f)}
-            >
-              {f === 'all' ? 'All' : statusLabel(f)}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Filter incidents by status"
+          value={filter}
+          onChange={setFilter}
+          options={(['all', 'open', 'acknowledged', 'resolved'] as const).map((f) => ({
+            value: f,
+            label: f === 'all' ? 'All' : statusLabel(f),
+          }))}
+        />
       </div>
 
       <section className="panel">
@@ -65,7 +64,6 @@ export function IncidentsPage() {
                     <td>
                       <Link
                         to={`/incidents/${inc.id}`}
-                        style={{ fontWeight: 600, color: 'var(--accent-strong)' }}
                       >
                         {inc.title}
                       </Link>

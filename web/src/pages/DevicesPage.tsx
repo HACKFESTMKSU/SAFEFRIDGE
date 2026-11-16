@@ -11,7 +11,7 @@ export function DevicesPage() {
     <>
       <div className="page-intro">
         <div>
-          <h2 style={{ fontSize: '1.35rem' }}>Devices</h2>
+          <h2>Devices</h2>
           <p>
             ESP32 edge units (CG-xxx). Link a device to one asset. Online status
             comes from last MQTT heartbeat.

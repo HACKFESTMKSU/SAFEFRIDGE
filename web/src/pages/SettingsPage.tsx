@@ -56,7 +56,7 @@ export function SettingsPage() {
     <>
       <div className="page-intro">
         <div>
-          <h2 style={{ fontSize: '1.35rem' }}>Thresholds & SMS</h2>
+          <h2>Thresholds & SMS</h2>
           <p>
             Configure warning/critical temperature rules and SIM800L SMS
             recipients for offline critical alerts.
@@ -77,7 +77,7 @@ export function SettingsPage() {
                 style={{
                   width: '100%',
                   border: 0,
-                  background: asset.id === selectedId ? 'rgba(15,138,122,0.08)' : 'transparent',
+                  background: asset.id === selectedId ? 'var(--band)' : 'transparent',
                   cursor: 'pointer',
                   textAlign: 'left',
                 }}
