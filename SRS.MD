@@ -87,10 +87,8 @@ Fridge / cold unit
 | --- | --- |
 | **ESP32** | Edge controller, Wi-Fi, MQTT publish |
 | **DHT11** | Temperature + humidity (primary climate sensor) |
-| **BMP180** | Barometric pressure + secondary temperature |
 | **ACS712** | Current draw (compressor / load proxy) |
 | **Water sensor** | Leak / overflow detection |
-| **MQ-3** | Optional demo only (alcohol vapor); not required for MVP alerts |
 | **SIM800L** | Critical SMS when Wi-Fi/MQTT is down |
 | Breadboard + jumpers | Lab wiring |
 | SIM card (unlocked) + antenna | Required for SIM800L SMS demos |
@@ -102,14 +100,12 @@ Fridge / cold unit
 | Sensor / module | Typical interface | Suggested ESP32 pins |
 | --- | --- | --- |
 | DHT11 | Digital 1-wire | GPIO 4 |
-| BMP180 | I2C | SDA 21, SCL 22 |
 | Water AO | Analog | GPIO 34 |
-| MQ-3 AO | Analog (module often 5V) | GPIO 35 |
 | ACS712 OUT | Analog (module often 5V) | GPIO 36 |
 | SIM800L TX / RX | UART | GPIO 17 (ESP32 TX) → SIM800L RXD, GPIO 16 (ESP32 RX) ← SIM800L TXD |
 | SIM800L VCC / GND | Power | External **3.7–4.2V**, ≥**2A** capable (LiPo or dedicated buck); common GND with ESP32 |
 
-Common GND for all modules. Use 3.3V for DHT11/BMP180/water where rated; 5V for MQ-3 heater and ACS712 if required by the module. Prefer ADC1 pins (34–39) when Wi-Fi is on.
+Common GND for all modules. Use 3.3V for DHT11/water where rated; 5V for ACS712 if required by the module. Prefer ADC1 pins (34–39) when Wi-Fi is on.
 
 **SIM800L notes**
 
@@ -150,10 +146,8 @@ No multi-tenant isolation in this prototype — single organization.
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | FR-07 | Device reads DHT11 temperature and humidity on a configurable interval (default 60s). | M |
-| FR-08 | Device reads BMP180 temperature and pressure. | M |
 | FR-09 | Device reads ACS712 current and publishes amperage (calibrated in firmware). | M |
 | FR-10 | Device reads water sensor; publishes wet/dry or analog level. | M |
-| FR-11 | Device may publish MQ-3 raw level for demos; no required alert rule. | C |
 | FR-12 | Device publishes JSON telemetry over MQTT; backend stores readings. | M |
 | FR-13 | Device flags disconnected or implausible readings where practical. | S |
 | FR-14 | Short local buffer when Wi-Fi drops; replay when back online. | S |
@@ -164,7 +158,7 @@ No multi-tenant isolation in this prototype — single organization.
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR-15 | Live view of latest temp, humidity, pressure, current, water status. | M |
+| FR-15 | Live view of latest temp, humidity, current, water status. | M |
 | FR-16 | Simple history charts (at least last 24 hours). | M |
 | FR-17 | Show device online/offline and last-seen. | M |
 
@@ -233,12 +227,9 @@ Commercial SLAs (99.5% uptime, 10k devices, etc.) are out of scope.
   "timestamp": "2026-11-12T16:00:00Z",
   "temperature_c": 4.5,
   "humidity_percent": 58,
-  "bmp_temperature_c": 24.1,
-  "pressure_hpa": 1013.2,
   "current_a": 1.2,
   "water_level": 120,
   "water_wet": false,
-  "mq3_raw": 0,
   "firmware_version": "0.1.0"
 }
 ```
@@ -264,7 +255,7 @@ coldguard/device/{device_id}/status
 
 ## 9. Acceptance (prototype done when)
 
-1. ESP32 publishes DHT11, BMP180, ACS712, and water readings over MQTT.
+1. ESP32 publishes DHT11, ACS712, and water readings over MQTT.
 2. Backend stores readings; dashboard shows live + 24h history.
 3. Admin can set temperature thresholds and link a device to an asset.
 4. Simulated high temperature creates an incident; Operator can ack and resolve.
@@ -280,7 +271,7 @@ coldguard/device/{device_id}/status
 | --- | --- |
 | DHT11 accuracy is coarse | Demo ranges, not medical certification claims |
 | ACS712 / mains safety | Use safe DC load for demos |
-| False water / MQ-3 noise | Calibrate thresholds; MQ-3 optional |
+| False water noise | Calibrate wet/dry thresholds on the water probe |
 | Wi-Fi drop | Short buffer + GSM SMS + show offline on dashboard |
 | SIM800L brownout / weak signal | 2A 4V supply + big cap + antenna; fallback to in-app when online |
 

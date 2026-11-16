@@ -41,12 +41,9 @@ def telemetry_payload(args, tick: int) -> dict:
         "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "temperature_c": temp,
         "humidity_percent": round(55 + math.sin(tick / 8.0) * 5, 0),
-        "bmp_temperature_c": round(24 + math.sin(tick / 10.0) * 1.0, 1),
-        "pressure_hpa": round(1012 + math.sin(tick / 12.0) * 2, 1),
         "current_a": round(1.1 + max(0.0, math.sin(tick / 5.0)) * 0.8, 2),
         "water_level": water_level,
         "water_wet": water_level > 500,
-        "mq3_raw": random.randint(35, 65),
         "firmware_version": FIRMWARE_VERSION,
     }
 

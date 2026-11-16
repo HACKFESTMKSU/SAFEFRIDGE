@@ -51,12 +51,9 @@ def telemetry_out(t: Telemetry) -> schemas.TelemetryReading:
         timestamp=t.timestamp,
         temperature_c=t.temperature_c,
         humidity_percent=t.humidity_percent,
-        bmp_temperature_c=t.bmp_temperature_c,
-        pressure_hpa=t.pressure_hpa,
         current_a=t.current_a,
         water_level=t.water_level,
         water_wet=t.water_wet,
-        mq3_raw=t.mq3_raw,
         quality=t.quality,
     )
 

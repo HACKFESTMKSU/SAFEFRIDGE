@@ -13,10 +13,6 @@ export function fmtAmps(v: number) {
   return `${v.toFixed(2)} A`
 }
 
-export function fmtPressure(v: number) {
-  return `${v.toFixed(1)} hPa`
-}
-
 export function fmtWhen(iso: string) {
   try {
     return format(parseISO(iso), 'dd MMM · HH:mm')

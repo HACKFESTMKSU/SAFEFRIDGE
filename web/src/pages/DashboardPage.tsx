@@ -118,11 +118,6 @@ export function DashboardPage() {
                 tone={latest.water_wet ? 'warn' : 'ok'}
               />
               <MetricTile
-                label="BMP180 pressure"
-                value={`${latest.pressure_hpa.toFixed(1)} hPa`}
-                hint={`Ambient ${fmtTemp(latest.bmp_temperature_c)}`}
-              />
-              <MetricTile
                 label="Last seen"
                 value={device ? fmtRelative(device.lastSeen) : '—'}
                 hint={device?.id}

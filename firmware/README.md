@@ -1,7 +1,7 @@
 # ColdGuard — ESP32 Firmware
 
 Edge firmware for the ColdGuard cold-storage monitor (SRS v2.1). Reads
-DHT11, BMP180, water sensor, ACS712 (and optional MQ-3), publishes MQTT
+DHT11, water sensor, ACS712, publishes MQTT
 telemetry per SRS §7, buffers readings in LittleFS during outages (FR-14),
 and sends critical GSM SMS via SIM800L when the cloud path is down
 (FR-14a/FR-14b).
@@ -11,9 +11,7 @@ and sends critical GSM SMS via SIM800L when the cloud path is down
 | Sensor / module | Interface | ESP32 pin |
 | --- | --- | --- |
 | DHT11 | 1-wire digital (10k pull-up to 3.3V) | GPIO 4 |
-| BMP180 | I2C SDA / SCL | GPIO 21 / GPIO 22 |
 | Water sensor AO | Analog in | GPIO 34 |
-| MQ-3 AO (optional) | Analog in (module often 5V) | GPIO 35 |
 | ACS712 OUT | Analog in (module often 5V) | GPIO 36 |
 | SIM800L TXD → ESP32 RX2 | UART | GPIO 16 |
 | ESP32 TX2 → SIM800L RXD | UART | GPIO 17 |
@@ -22,7 +20,7 @@ and sends critical GSM SMS via SIM800L when the cloud path is down
 Rules of thumb:
 
 - **Common GND** for every module.
-- 3.3 V for DHT11 / BMP180 / water sensor; 5 V for MQ-3 heater and ACS712
+- 3.3 V for DHT11 / water sensor; 5 V for ACS712
   *if the module requires it*.
 - GPIO 34–39 are input-only ADC1 pins — safe to use while Wi-Fi is on.
 - **ACS712 on mains is hazardous** — demo with a safe low-voltage DC load.
@@ -46,7 +44,6 @@ pio run -t upload \
 ## Libraries (see `platformio.ini`)
 
 - `adafruit/DHT sensor library` — DHT11 temp/humidity
-- `adafruit/Adafruit BMP085 Library` — BMP180 pressure + temperature
 - `bblanchon/ArduinoJson` **v7** — telemetry/config JSON
 - `knolleary/PubSubClient` — MQTT client
 - LittleFS — built into the Arduino ESP32 core; used for the offline
@@ -92,7 +89,7 @@ A config subscriber is already wired: the device subscribes to
 
 - `coldguard/device/{device_id}/telemetry` — QoS 1, JSON matching SRS §7
   **exactly**, plus one extra `quality` field (FR-13): `"ok"`, `"dht_nan"`,
-  `"temp_implausible"`, `"bmp_fail"`, etc. Non-finite floats serialize as
+  `"temp_implausible"`, `"dht_nan"`, etc. Non-finite floats serialize as
   JSON `null` so the backend can spot gaps.
 - `coldguard/device/{device_id}/status` — retained `{device_id, online,
   firmware_version, last_seen}` every ~30 s; also used as the MQTT LWT so
@@ -103,9 +100,8 @@ Example telemetry (SRS §7 shape):
 
 ```json
 {"device_id":"CG-001","timestamp":"2026-11-12T16:00:00Z",
- "temperature_c":4.5,"humidity_percent":58,"bmp_temperature_c":24.1,
- "pressure_hpa":1013.2,"current_a":1.2,"water_level":120,"water_wet":false,
- "mq3_raw":0,"firmware_version":"0.1.0","quality":"ok"}
+ "temperature_c":4.5,"humidity_percent":58,"current_a":1.2,
+ "water_level":120,"water_wet":false,"firmware_version":"0.1.0","quality":"ok"}
 ```
 
 ## Offline behaviour

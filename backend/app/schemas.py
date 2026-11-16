@@ -151,12 +151,9 @@ class TelemetryReading(BaseModel):
     timestamp: datetime
     temperature_c: float | None = None
     humidity_percent: float | None = None
-    bmp_temperature_c: float | None = None
-    pressure_hpa: float | None = None
     current_a: float | None = None
     water_level: float | None = None
     water_wet: bool = False
-    mq3_raw: float | None = None
     quality: str = "ok"
 
 

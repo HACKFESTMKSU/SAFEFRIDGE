@@ -71,7 +71,7 @@ const features = [
   {
     icon: <Thermometer size={22} />,
     title: 'Live cold-chain telemetry',
-    text: 'Temperature, humidity, pressure, compressor current and water-leak readings from every unit, refreshed in real time.',
+    text: 'Temperature, humidity, compressor current and water-leak readings from every unit, refreshed in real time.',
   },
   {
     icon: <BellRing size={22} />,
@@ -105,7 +105,7 @@ const steps = [
     n: '01',
     icon: <Cpu size={20} />,
     title: 'Sense',
-    text: 'ESP32 reads DHT11, BMP180, ACS712 and water sensors every 60 seconds on the shelf, inside the cold room or under the fridge.',
+    text: 'ESP32 reads DHT11, ACS712 and water sensors every 60 seconds on the shelf, inside the cold room or under the fridge.',
   },
   {
     n: '02',
@@ -269,7 +269,7 @@ export function LandingPage() {
               <span className="landing-eyebrow">The solution</span>
               <h3>ColdGuard watches every unit, all the time</h3>
               <p>
-                An ESP32 on each fridge reads temperature, humidity, pressure,
+                An ESP32 on each fridge reads temperature, humidity,
                 compressor current and leaks — publishing over MQTT and raising
                 incidents the moment readings leave safe bounds. If Wi-Fi dies,
                 critical conditions still trigger SMS over GSM.

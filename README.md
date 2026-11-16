@@ -4,7 +4,7 @@ Cold-storage monitoring prototype: ESP32 sensors → MQTT → dashboard → thre
 
 ## What it does
 
-Monitor a fridge or small cold unit for temperature, humidity, pressure, compressor current, and water leaks. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
+Monitor a fridge or small cold unit for temperature, humidity, compressor current, and water leaks. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
 
 ## Hardware kit
 
@@ -12,10 +12,8 @@ Monitor a fridge or small cold unit for temperature, humidity, pressure, compres
 | --- | --- |
 | ESP32 | Edge controller, Wi‑Fi, MQTT |
 | DHT11 | Temperature + humidity |
-| BMP180 | Pressure + secondary temp |
 | ACS712 | Compressor / load current |
 | Water sensor | Leak detection |
-| MQ-3 | Optional vapor demo (no MVP alerts) |
 | SIM800L | Critical SMS when offline |
 | Breadboard + jumpers | Lab wiring |
 
@@ -66,8 +64,8 @@ Open the URL Vite prints (usually `http://localhost:5173`).
 
 ## Build plan (short)
 
-1. Wire ESP32 + DHT11 + BMP180 → Serial  
-2. Add water + ACS712 → MQTT publish  
+1. Wire ESP32 + DHT11 → Serial
+2. Add water + ACS712 → MQTT publish
 3. Backend ingest + live dashboard  
 4. Auth + roles + asset link  
 5. Thresholds → incidents → ack/resolve  

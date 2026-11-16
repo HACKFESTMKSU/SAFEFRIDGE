@@ -21,11 +21,8 @@ logger = logging.getLogger("coldguard.mqtt")
 RANGES = {
     "temperature_c": (-40.0, 80.0),
     "humidity_percent": (0.0, 100.0),
-    "bmp_temperature_c": (-40.0, 80.0),
-    "pressure_hpa": (900.0, 1100.0),
     "current_a": (-1.0, 50.0),
     "water_level": (0.0, 100000.0),
-    "mq3_raw": (0.0, 4095.0),
 }
 
 
@@ -34,12 +31,9 @@ class TelemetryPayload(BaseModel):
     timestamp: datetime | None = None
     temperature_c: float | None = None
     humidity_percent: float | None = None
-    bmp_temperature_c: float | None = None
-    pressure_hpa: float | None = None
     current_a: float | None = None
     water_level: float | None = None
     water_wet: bool = False
-    mq3_raw: float | None = None
     firmware_version: str | None = None
 
     model_config = {"populate_by_name": True}
@@ -87,12 +81,9 @@ def handle_telemetry(payload: TelemetryPayload) -> None:
             timestamp=ts,
             temperature_c=payload.temperature_c,
             humidity_percent=payload.humidity_percent,
-            bmp_temperature_c=payload.bmp_temperature_c,
-            pressure_hpa=payload.pressure_hpa,
             current_a=payload.current_a,
             water_level=payload.water_level,
             water_wet=payload.water_wet,
-            mq3_raw=payload.mq3_raw,
             quality=_quality(payload),
         )
         db.add(row)

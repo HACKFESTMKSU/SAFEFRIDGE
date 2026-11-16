@@ -92,12 +92,9 @@ class Telemetry(Base):
 
     temperature_c: Mapped[float | None] = mapped_column(Float, nullable=True)
     humidity_percent: Mapped[float | None] = mapped_column(Float, nullable=True)
-    bmp_temperature_c: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pressure_hpa: Mapped[float | None] = mapped_column(Float, nullable=True)
     current_a: Mapped[float | None] = mapped_column(Float, nullable=True)
     water_level: Mapped[float | None] = mapped_column(Float, nullable=True)
     water_wet: Mapped[bool] = mapped_column(Boolean, default=False)
-    mq3_raw: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # 'ok' | 'suspect' — implausible readings are stored but flagged (FR-13)
     quality: Mapped[str] = mapped_column(String(20), default="ok")

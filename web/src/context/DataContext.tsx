@@ -53,12 +53,9 @@ function normReading(r: TelemetryReading): TelemetryReading {
     ...r,
     temperature_c: r.temperature_c ?? 0,
     humidity_percent: r.humidity_percent ?? 0,
-    bmp_temperature_c: r.bmp_temperature_c ?? 0,
-    pressure_hpa: r.pressure_hpa ?? 0,
     current_a: r.current_a ?? 0,
     water_level: r.water_level ?? 0,
     water_wet: r.water_wet ?? false,
-    mq3_raw: r.mq3_raw ?? 0,
   }
 }
 

@@ -5,7 +5,7 @@
 | Based on | SRS v2.1 (12 November 2026) |
 | Goal | Working demo: ESP32 sensors → MQTT → dashboard → threshold alert (+ GSM SMS offline) |
 | Stack | ESP32 (PlatformIO) · Mosquitto · FastAPI · PostgreSQL · React · email · GSM SMS |
-| Hardware | ESP32, DHT11, BMP180, ACS712, water sensor, SIM800L, MQ-3 (optional), breadboard, jumpers |
+| Hardware | ESP32, DHT11, ACS712, water sensor, SIM800L, breadboard, jumpers |
 
 ---
 
@@ -65,8 +65,7 @@ Phase 4  Offline buffer + GSM SMS + email
 
 **Firmware**
 
-- Read DHT11 (temp/humidity), BMP180 (temp/pressure), water AO, ACS712 OUT
-- Optional: MQ-3 raw (no alert rules yet)
+- Read DHT11 (temp/humidity), water AO, ACS712 OUT
 - Sample every 60s (configurable)
 - Publish MQTT JSON matching SRS §7
 - Status topic: online heartbeat / firmware version
@@ -98,7 +97,7 @@ Phase 4  Offline buffer + GSM SMS + email
 **Frontend**
 
 - Asset list + detail
-- Live metrics: temp, humidity, pressure, current, water
+- Live metrics: temp, humidity, current, water
 - 24h chart
 - Online/offline badge from last-seen
 
@@ -177,13 +176,12 @@ Phase 4  Offline buffer + GSM SMS + email
 | AI anomaly / forecasting | Thresholds only |
 | WhatsApp, webhooks, fleet benchmarking | Post-prototype |
 | Cloud SMS (Twilio / Africa’s Talking) | Edge GSM covers offline demo |
-| MQ-3 alerting | Sensor optional; noisy for MVP |
 
 ---
 
 ## Suggested order of work (hackathon)
 
-1. Wire ESP32 + DHT11 + BMP180 first; Serial print.
+1. Wire ESP32 + DHT11 first; Serial print.
 2. Add water + ACS712; then MQTT publish.
 3. Backend ingest + one HTML/React live page.
 4. Auth + three roles + asset link.
@@ -196,7 +194,7 @@ Phase 4  Offline buffer + GSM SMS + email
 
 Matches SRS §9:
 
-1. ESP32 publishes DHT11, BMP180, ACS712, water over MQTT  
+1. ESP32 publishes DHT11, ACS712, water over MQTT  
 2. Dashboard: live + 24h history  
 3. Admin thresholds + device↔asset link  
 4. Excursion/leak → incident; Operator ack/resolve  

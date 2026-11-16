@@ -10,7 +10,6 @@ import {
   assetTypeLabel,
   fmtAmps,
   fmtPct,
-  fmtPressure,
   fmtRelative,
   fmtTemp,
   fmtWhen,
@@ -137,31 +136,16 @@ export function AssetDetailPage() {
 
         <section className="panel panel-pad">
           <div className="panel-head">
-            <h2>Secondary sensors</h2>
+            <h2>Thresholds &amp; SMS</h2>
           </div>
-          <div className="grid" style={{ gap: '0.75rem' }}>
-            <MetricTile
-              label="BMP180 ambient temp"
-              value={latest ? fmtTemp(latest.bmp_temperature_c) : '—'}
-            />
-            <MetricTile
-              label="BMP180 pressure"
-              value={latest ? fmtPressure(latest.pressure_hpa) : '—'}
-            />
-            <MetricTile
-              label="MQ-3 (optional)"
-              value={latest ? String(latest.mq3_raw) : '—'}
-              hint="Demo only · no alert rule"
-            />
-            <div className="metric">
-              <div className="label">Thresholds</div>
-              <div className="hint">
-                Warn ≥ {asset.thresholds.tempWarningC}°C · Critical ≥{' '}
-                {asset.thresholds.tempCriticalC}°C
-              </div>
-              <div className="hint" style={{ marginTop: '0.35rem' }}>
-                SMS: {asset.smsRecipients.join(', ') || 'None configured'}
-              </div>
+          <div className="metric">
+            <div className="label">Thresholds</div>
+            <div className="hint">
+              Warn ≥ {asset.thresholds.tempWarningC}°C · Critical ≥{' '}
+              {asset.thresholds.tempCriticalC}°C
+            </div>
+            <div className="hint" style={{ marginTop: '0.35rem' }}>
+              SMS: {asset.smsRecipients.join(', ') || 'None configured'}
             </div>
           </div>
         </section>
