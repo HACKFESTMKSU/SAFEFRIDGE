@@ -113,6 +113,10 @@ export function LandingPage() {
             <span><ShieldCheck size={15} /> No hidden fees — ever</span>
             <span><Boxes size={15} /> Every unit type &amp; budget</span>
           </div>
+          <div className="rv-hero-img">
+            <img src="/images/village_reach.jpg" alt="Vaccine cold chain worker" />
+            <span className="rv-hero-img-tag">Live cold-chain monitoring</span>
+          </div>
         </div>
 
         {/* QUOTE FORM */}
@@ -253,6 +257,7 @@ export function LandingPage() {
           <button className="btn" type="submit">Submit <ArrowRight size={16} /></button>
         </form>
         <div className="rv-contact-info">
+          <img src="/images/cold_room.jpg" alt="Cold storage room" className="rv-contact-img" />
           <h3>ColdGuard</h3>
           <p><Mail size={15}/> hello@coldguard.local</p>
           <p><Phone size={15}/> +254 700 000 000</p>
