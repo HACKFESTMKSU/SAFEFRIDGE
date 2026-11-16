@@ -1971,3 +1971,26 @@ table.data td.wrap {
 .landing h3 {
   text-transform: none;
 }
+
+/* Video section */
+.rv-video-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1rem;
+}
+
+.rv-video-card video {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 14px;
+  background: #000;
+  display: block;
+}
+
+.rv-video-credit {
+  margin: 0.7rem 0 0.2rem;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}

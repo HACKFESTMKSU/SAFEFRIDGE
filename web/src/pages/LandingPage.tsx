@@ -234,6 +234,22 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* VIDEO */}
+      <section className="landing-section rv-video">
+        <div className="landing-section-head">
+          <span className="landing-eyebrow">Watch</span>
+          <h2>Why the cold chain matters</h2>
+          <p>How vaccines travel from manufacture to patient — and where monitoring fits in.</p>
+        </div>
+        <div className="rv-video-card">
+          <video controls preload="metadata" poster="/images/ghana_vaccine.jpg">
+            <source src="/videos/vaccine_logistics.webm" type="video/webm" />
+            Your browser does not support the video tag.
+          </video>
+          <p className="rv-video-credit">Video: CDC — COVID-19 vaccine logistics (Wikimedia Commons, public domain)</p>
+        </div>
+      </section>
+
       {/* FEATURES */}
       <section id="features" className="landing-section">
         <div className="landing-section-head">
