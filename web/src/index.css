@@ -1751,3 +1751,135 @@ table.data td.wrap {
   border-radius: 14px;
   margin-bottom: 0.6rem;
 }
+
+/* ---------- Linda Mwananchi light-UI restyle (landing only) ---------- */
+
+.landing {
+  --bg: #f7f9fe;
+  --surface: #ffffff;
+  --line: #e5e7eb;
+  --ink: #111827;
+  --ink-muted: #6b7280;
+  --brand: #2563eb;
+  --brand-soft: #e7efff;
+  --amber: #f8c24e;
+  --shadow: 0 8px 24px rgba(17, 24, 39, 0.07);
+  background: var(--bg);
+  font-family: 'Inter', 'Outfit', sans-serif;
+}
+
+.landing h1, .landing h2 {
+  font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-weight: 400;
+}
+
+.landing .rv-hero h1 {
+  font-size: clamp(3rem, 7vw, 5.2rem);
+  line-height: 0.98;
+  color: var(--ink);
+}
+
+.landing .landing-section-head h2 {
+  font-size: clamp(2rem, 4.5vw, 3.4rem);
+}
+
+.landing .landing-eyebrow {
+  color: var(--brand);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+
+.landing .btn {
+  background: var(--brand);
+  color: #fff;
+  border-radius: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  box-shadow: none;
+  border: none;
+}
+
+.landing .btn:hover { background: #1d4fd7; filter: none; }
+
+.landing .btn.secondary {
+  background: transparent;
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+
+.landing .rv-quote {
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  border-radius: 16px;
+}
+
+.landing .rv-quote h3 { color: var(--ink); font-family: 'Space Grotesk', sans-serif; }
+
+.landing .rv-quote .field input,
+.landing .rv-quote .field select,
+.landing .rv-contact-form .field input,
+.landing .rv-contact-form .field textarea {
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  background: #f7f9fe;
+}
+
+.landing .rv-quote .field input:focus,
+.landing .rv-quote .field select:focus {
+  border-color: var(--brand);
+}
+
+.landing .rv-hero-img {
+  border: none;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+
+.landing .rv-hero-img-tag {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.landing .rv-unit {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.landing .rv-unit-tag {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.landing .landing-feature {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.landing .landing-feature-icon {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+.landing .rv-trusted {
+  background: var(--ink);
+  border: none;
+}
+
+.landing .rv-trusted p { color: #f7f9fe; font-family: 'Space Grotesk', sans-serif; }
+
+.landing .rv-contact-info { background: var(--brand); border-radius: 16px; }
+
+.landing .landing-footer { background: var(--ink); color: #f7f9fe; }
+
+.landing .landing-slider-btn {
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.landing .landing-dot { background: var(--line); }
+.landing .landing-dot.active { background: var(--brand); }
