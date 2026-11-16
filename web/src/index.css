@@ -1883,3 +1883,91 @@ table.data td.wrap {
 
 .landing .landing-dot { background: var(--line); }
 .landing .landing-dot.active { background: var(--brand); }
+
+/* ---------- Clean text-based components (no icons) ---------- */
+
+.landing .brand-word {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.landing .brand-sub {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.landing .brand {
+  font-family: 'Bebas Neue', sans-serif;
+}
+
+.rv-hero-points {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+}
+
+.rv-hero-points p {
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--brand);
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.rv-hero-points strong {
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.rv-problems, .rv-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.2rem;
+}
+
+.rv-problem, .rv-step {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1.6rem;
+  box-shadow: var(--shadow);
+}
+
+.rv-problem-n, .rv-step-n {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.2rem;
+  color: var(--brand);
+  line-height: 1;
+  display: block;
+  margin-bottom: 0.8rem;
+}
+
+.rv-step .rv-step-n { color: var(--amber); }
+
+.rv-problem h3, .rv-step h3 {
+  margin: 0 0 0.6rem;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.1rem;
+}
+
+.rv-problem p, .rv-step p {
+  margin: 0;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.landing-feature h3 {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.landing h3 {
+  text-transform: none;
+}
