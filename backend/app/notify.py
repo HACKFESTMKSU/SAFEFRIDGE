@@ -17,12 +17,21 @@ from .models import Asset, Incident, User
 logger = logging.getLogger("coldguard.notify")
 
 
+def _is_deliverable(email: str) -> bool:
+    """Skip seeded demo addresses Resend cannot deliver to."""
+    e = email.strip().lower()
+    if "@" not in e or e.startswith("@"):
+        return False
+    # .local / placeholder domains are for login demos only
+    return not e.endswith((".local", ".test", ".example", ".invalid"))
+
+
 def _recipients(db: Session, asset: Asset) -> list[str]:
     emails = [e.strip() for e in settings.NOTIFY_EMAILS.split(",") if e.strip()]
-    # Also notify operator/admin users that have an email on file.
+    # Also notify operator/admin users that have a real email on file.
     users = db.scalars(select(User).where(User.role.in_(["operator", "admin"]))).all()
     emails += [u.email for u in users if u.email]
-    return sorted(set(emails))
+    return sorted({e for e in emails if _is_deliverable(e)})
 
 
 def _html_body(asset_name: str, incident: Incident, text_body: str) -> str:
@@ -56,6 +65,7 @@ def notify_incident(db: Session, incident: Incident) -> None:
 
     resend.api_key = settings.RESEND_API_KEY
     try:
+        # resend-python: idempotency lives in the options dict (2nd arg), not a kwarg
         result = resend.Emails.send(
             {
                 "from": settings.RESEND_FROM,
@@ -64,7 +74,7 @@ def notify_incident(db: Session, incident: Incident) -> None:
                 "text": body,
                 "html": _html_body(asset_name, incident, body),
             },
-            idempotency_key=f"incident-notify/{incident.id}",
+            {"idempotency_key": f"incident-notify/{incident.id}"},
         )
         email_id = result.get("id") if isinstance(result, dict) else getattr(result, "id", None)
         logger.info("Incident notification emailed to %s (id=%s)", to, email_id)
