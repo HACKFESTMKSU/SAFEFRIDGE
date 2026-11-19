@@ -1,7 +1,9 @@
 # ColdGuard — Problem, Solution & Business Opportunity
 
 **Theme alignment:** Architecting a Resilient Future  
-**Focus:** Intelligent, resilient monitoring for agri cold chain — cold rooms, storehouses, food hubs, and warehouses holding perishable produce.
+**Focus:** Intelligent, resilient monitoring for the **agricultural cold chain** — farms, markets, food hubs, cold rooms, storehouses, and warehouses holding perishable produce.
+
+**Out of scope for this prototype:** pharmaceuticals, vaccines, and pharmacy / clinic cold chain.
 
 ---
 
@@ -47,7 +49,7 @@ That approach does not scale, does not catch night-time failures, and does not g
 
 ### 1.4 The core need
 
-Facilities need a **resilient monitoring architecture** that:
+Produce storage facilities need a **resilient monitoring architecture** that:
 
 1. Watches conditions continuously (temperature, humidity, leaks)
 2. Knows **what produce** is stored so safe bands match the crop
@@ -104,8 +106,6 @@ Cold room / storehouse / warehouse zone
 - **Operators and technicians** — staff who need live visibility and a clear incident workflow  
 - **Admins** — people who set thresholds, link devices, and manage users  
 
-*(Pharmacy / vaccine cold chain is a future expansion, not the current prototype focus.)*
-
 ### 2.4 What makes it resilient (not just “a sensor”)
 
 - **Edge + cloud:** local alerts still matter on site even if someone is not looking at the dashboard  
@@ -120,7 +120,7 @@ Cold room / storehouse / warehouse zone
 - MQTT ingest + FastAPI backend + rule engine  
 - React dashboard: live metrics, charts, assets, incidents, roles, thresholds  
 - Produce agent: YOLOE-26 video characterization + Claude / static profile apply  
-- Asset types including storehouse / warehouse  
+- Asset types focused on storehouse / warehouse / cold-room style storage  
 
 ---
 
@@ -128,7 +128,7 @@ Cold room / storehouse / warehouse zone
 
 ### 3.1 Market need
 
-Cold-chain failures create recurring, measurable losses:
+Agri cold-chain failures create recurring, measurable losses:
 
 - Rejected or downgraded produce shipments  
 - Unplanned restocking and overnight spoilage at hubs  
@@ -144,7 +144,7 @@ Buyers want **assurance**: “If something goes wrong for *this* crop, we know i
 | Fresh produce hubs & markets | Post-harvest spoilage in stores | Reduce waste, protect trader income |
 | Warehouses / storehouses | Large volumes, few night staff | Early leak/heat alerts across zones |
 | Farm aggregation points | Mixed crops, wrong fixed thresholds | Crop-aware monitoring |
-| Cooperatives / NGOs (food systems) | Last-mile cool storage gaps | Affordable kits + remote visibility |
+| Cooperatives / food-system NGOs | Last-mile cool storage gaps | Affordable kits + remote visibility |
 
 ### 3.3 Product packaging (path to revenue)
 

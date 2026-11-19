@@ -4,9 +4,9 @@ Environmental monitoring for cold rooms, warehouses, and storehouses: ESP32 sens
 
 ## What it does
 
-ColdGuard watches temperature, humidity, water leaks, and (where fitted) compressor current across **pharmacy fridges, freezers, cold rooms, and agricultural storehouses / warehouses**. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
+ColdGuard watches temperature, humidity, water leaks, and (where fitted) compressor current across **cold rooms, agricultural storehouses, food hubs, and warehouses** holding perishable produce. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. A vision + LLM agent can characterize the crop in the room and adapt safe bands to that produce. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
 
-**Who it’s for:** pharmacies and clinics protecting medicine and vaccines, and farms, markets, and food hubs protecting stored produce from spoilage when conditions drift.
+**Who it’s for:** farms, markets, food hubs, and warehouse operators protecting stored produce from spoilage when conditions drift. Pharmaceuticals / vaccines are out of scope for this prototype.
 
 ## Hardware kit
 
