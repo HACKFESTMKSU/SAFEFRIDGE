@@ -83,8 +83,50 @@ Details: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md).
 - **Web:** React + Vite
 - **Alerts:** In-app, email, GSM SMS fallback
 
+## Deploy (Vercel + Render)
+
+Env placeholders live in [`.env.example`](./.env.example) (root), [`backend/.env.example`](./backend/.env.example), and [`web/.env.example`](./web/.env.example). Copy to `.env` locally; set the same keys in the dashboards for production.
+
+### 1. Backend on Render (Docker)
+
+1. Push this repo to GitHub.
+2. [Render](https://render.com) → **New** → **Web Service** → connect the repo.
+3. Settings:
+   - **Language / Runtime:** Docker
+   - **Root Directory:** `backend` (uses `backend/Dockerfile`)
+   - **Health Check Path:** `/health`
+4. After deploy, open `https://<service>.onrender.com/health` — expect `{"status":"ok",...}`.
+5. In **Environment**, set:
+   - `JWT_SECRET` = a long random string
+   - `CORS_ORIGINS` = your Vercel URL (e.g. `https://coldguard.vercel.app`)
+   - `MQTT_ENABLED` = `false` (unless you point at an external broker)
+   - `ANTHROPIC_API_KEY` (optional)
+   - `RESEND_API_KEY` / `RESEND_FROM` (optional — incident emails)
+   - `DATABASE_URL` (optional — leave empty for SQLite demo; paste a Postgres URL for persistence)
+6. Free web dynos sleep when idle; first request after sleep can take ~30–60s.
+
+### 2. Frontend on Vercel
+
+1. [Vercel](https://vercel.com) → **Add New Project** → import the repo.
+2. Set **Root Directory** to `web`.
+3. Framework preset: Vite (see `web/vercel.json`).
+4. Environment variable:
+   - `VITE_API_URL` = `https://<your-render-service>.onrender.com/api`
+5. Deploy. Then go back to Render and set `CORS_ORIGINS` to the Vercel URL if you have not already.
+
+### Cross-link checklist
+
+| Where | Variable | Example |
+| --- | --- | --- |
+| Vercel | `VITE_API_URL` | `https://coldguard-api.onrender.com/api` |
+| Render | `CORS_ORIGINS` | `https://coldguard.vercel.app` |
+| Render | `JWT_SECRET` | long random string |
+| Render | `ANTHROPIC_API_KEY` | `sk-ant-…` (optional) |
+| Render | `RESEND_API_KEY` | `re_…` (optional) |
+
 ## Docs
 
 - [Software Requirements (SRS)](./SRS.MD)
 - [Implementation plan](./IMPLEMENTATION_PLAN.md)
 - [Web app notes](./web/README.md)
+- [Backend notes](./backend/README.md)

@@ -35,14 +35,31 @@ See `.env.example`. Key vars:
 
 - `DATABASE_URL` — defaults to SQLite; use
   `postgresql+psycopg://coldguard:coldguard@localhost:5432/coldguard` for Postgres.
+  Render/Heroku `postgres://` URLs are normalized automatically.
+- `CORS_ORIGINS` — comma-separated production frontends (e.g. Vercel URL);
+  localhost Vite ports are always allowed
 - `MQTT_ENABLED`, `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`
 - `RULE_CONSECUTIVE_BREACHES` (default 2) — sustained-breach gate before an
   incident is created; `RULE_BREACH_WINDOW_SECONDS` (default 600)
 - `DEVICE_OFFLINE_SECONDS` (default 300) — silence before `device_offline`
-- `SMTP_*` / `NOTIFY_EMAILS` — email on new incidents; logged only if unset
+- `RESEND_API_KEY` / `RESEND_FROM` / `NOTIFY_EMAILS` — Resend email on new
+  incidents; logged only if the API key is unset
 - `JWT_SECRET`, `JWT_EXPIRE_MINUTES`
 - `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` — Claude agent for produce guidance (optional; static catalog fallback without a key)
 - `VISION_MODEL` — Ultralytics weight hint (default YOLOE-26 small seg)
+
+## Deploy (Render — Docker)
+
+Create a **Web Service** with **Runtime: Docker**, **Root Directory:** `backend`
+(builds `Dockerfile`). Health check: `/health`. Set `CORS_ORIGINS` to your
+Vercel URL and `MQTT_ENABLED=false` unless you use an external broker.
+Full steps: root [README](../README.md#deploy-vercel--render).
+
+```bash
+# Local smoke-test of the same image Render will run
+docker build -t coldguard-api .
+docker run --rm -p 8000:8000 -e MQTT_ENABLED=false coldguard-api
+```
 
 ## Produce vision agent
 
