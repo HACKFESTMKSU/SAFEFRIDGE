@@ -78,7 +78,8 @@ pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements-vision.txt
 ```
 
-First vision run also downloads `yoloe-26s-seg.pt` (needs network).
+Docker/Render **prefetches** `yolov8n.pt` during image build (not per request).
+Override with build-arg `PREFETCH_MODELS` if you need extra weights.
 
 ## MQTT
 

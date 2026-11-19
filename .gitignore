@@ -60,8 +60,8 @@ tmp/
 temp/
 .cache/
 
-# Vision model weights — downloaded locally / on first run; not needed for Render
-# (Dockerfile only copies app/ + requirements; Ultralytics fetches weights at runtime)
+# Vision model weights — keep local; not pushed to GitHub.
+# Render Docker build prefetches yolov8n.pt once into the image (see backend/Dockerfile).
 *.pt
 *.pth
 *.onnx
