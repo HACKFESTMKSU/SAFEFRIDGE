@@ -11,5 +11,14 @@ __pycache__/
 .ruff_cache/
 .git/
 *.md
-scripts/
-requirements-vision.txt
+# Local/downloaded weights — image build prefetches the default model instead
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.part
+weights/
+.mobileclip*
+# Keep scripts/prefetch_models.py for the Docker build step
+scripts/*
+!scripts/prefetch_models.py

@@ -7,11 +7,33 @@ from .config import settings
 
 logger = logging.getLogger("coldguard.db")
 
-connect_args = (
-    {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
-)
 
-engine = create_engine(settings.DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
+def _engine_kwargs() -> dict:
+    url = settings.DATABASE_URL
+    if url.startswith("sqlite"):
+        return {
+            "connect_args": {"check_same_thread": False},
+            "pool_pre_ping": True,
+        }
+
+    connect_args: dict = {}
+    # Supabase transaction pooler (PgBouncer) rejects prepared statements.
+    # psycopg3: prepare_threshold=None disables them for the connection.
+    if settings.DATABASE_IS_POOLER:
+        connect_args["prepare_threshold"] = None
+        logger.info("Postgres pooler mode: prepared statements disabled")
+
+    kwargs: dict = {
+        "connect_args": connect_args,
+        "pool_pre_ping": True,
+    }
+    # Keep app-side pools small — Supabase already pools on :6543
+    if settings.DATABASE_IS_POOLER:
+        kwargs.update(pool_size=5, max_overflow=5, pool_timeout=30)
+    return kwargs
+
+
+engine = create_engine(settings.DATABASE_URL, **_engine_kwargs())
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 

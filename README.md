@@ -98,12 +98,20 @@ Env placeholders live in [`.env.example`](./.env.example) (root), [`backend/.env
 4. After deploy, open `https://<service>.onrender.com/health` — expect `{"status":"ok",...}`.
 5. In **Environment**, set:
    - `JWT_SECRET` = a long random string
-   - `CORS_ORIGINS` = your Vercel URL (e.g. `https://coldguard.vercel.app`)
-   - `MQTT_ENABLED` = `false` (unless you point at an external broker)
+   - `CORS_ORIGINS` = your Vercel URL (e.g. `https://coldguard.vercel.app`) — no trailing slash
+   - For live ESP32 data (Arduino sketch uses public EMQX):
+     - `MQTT_ENABLED` = `true`
+     - `MQTT_HOST` = `broker.emqx.io`
+     - `MQTT_PORT` = `1883`
+   - Or set `MQTT_ENABLED=false` and POST readings to `/api/telemetry/ingest`
    - `ANTHROPIC_API_KEY` (optional)
    - `RESEND_API_KEY` / `RESEND_FROM` (optional — incident emails)
-   - `DATABASE_URL` (optional — leave empty for SQLite demo; paste a Postgres URL for persistence)
-6. Free web dynos sleep when idle; first request after sleep can take ~30–60s.
+   - `DATABASE_URL` = Supabase **Transaction pooler** URI (port **6543**), from
+     Project Settings → Database → Connect → URI. Example host:
+     `aws-0-<region>.pooler.supabase.com:6543`. Paste the `postgres://…` string
+     as-is; the app normalizes it for psycopg and disables prepared statements
+     (required for PgBouncer transaction mode).
+6. Free web dynos sleep when idle; first request after sleep can take ~30–60s. After redeploy, hit `/health` and confirm logs show `Database ready` (not a seed IntegrityError).
 
 ### 2. Frontend on Vercel
 
@@ -121,8 +129,22 @@ Env placeholders live in [`.env.example`](./.env.example) (root), [`backend/.env
 | Vercel | `VITE_API_URL` | `https://coldguard-api.onrender.com/api` |
 | Render | `CORS_ORIGINS` | `https://coldguard.vercel.app` |
 | Render | `JWT_SECRET` | long random string |
+| Render | `DATABASE_URL` | Supabase transaction pooler URI (`…pooler.supabase.com:6543/postgres`) |
+| Render | `MQTT_ENABLED` | `true` |
+| Render | `MQTT_HOST` | `broker.emqx.io` |
+| Render | `MQTT_PORT` | `1883` |
 | Render | `ANTHROPIC_API_KEY` | `sk-ant-…` (optional) |
 | Render | `RESEND_API_KEY` | `re_…` (optional) |
+
+### Live sensor → dashboard path
+
+```text
+ESP32 (CG-001) → MQTT broker.emqx.io → Render backend subscribe
+                                      → Postgres telemetry rows
+                                      → Vercel dashboard polls /api/telemetry/...
+```
+
+Login on the Vercel app with `admin@coldguard.local` / `admin123` (seeded on startup).
 
 ## Docs
 

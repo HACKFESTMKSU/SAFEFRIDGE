@@ -53,11 +53,25 @@ export interface ProduceProfile {
   visionPrompts: string[]
 }
 
+export interface DetectionBox {
+  label: string
+  product_key?: string | null
+  productKey?: string | null
+  confidence: number
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+}
+
 export interface CharacterizeResult {
   asset: Asset
   productKey: string | null
   confidence: number
   detections: Array<{ product_key?: string; productKey?: string; confidence: number; hits?: number }>
+  boxes: DetectionBox[]
+  /** JPEG of annotated mid-frame (base64, no data: prefix) */
+  previewImageBase64: string | null
   framesSampled: number
   visionModel: string | null
   visionReady: boolean
@@ -65,6 +79,7 @@ export interface CharacterizeResult {
   status: string
   guidance: string
   thresholdsApplied: boolean
+  message?: string
 }
 
 export interface Device {

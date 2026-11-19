@@ -60,6 +60,17 @@ tmp/
 temp/
 .cache/
 
+# Vision model weights — keep local; not pushed to GitHub.
+# Render Docker build prefetches yolov8n.pt once into the image (see backend/Dockerfile).
+*.pt
+*.pth
+*.onnx
+*.safetensors
+backend/weights/
+backend/.mobileclip*
+*.part
+backend/.*.part
+
 # Docker (local overrides)
 docker-compose.override.yml
 ~$*

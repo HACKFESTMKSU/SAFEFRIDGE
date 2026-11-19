@@ -198,13 +198,17 @@ async def characterize_stock(
     asset = _get_asset(db, asset_id)
     content_type = (file.content_type or "").lower()
     name = file.filename or "clip.mp4"
-    if not (
-        content_type.startswith("video/")
-        or name.lower().endswith((".mp4", ".webm", ".mov", ".avi", ".mkv"))
-    ):
+    video_ok = content_type.startswith("video/") or name.lower().endswith(
+        (".mp4", ".webm", ".mov", ".avi", ".mkv")
+    )
+    image_ok = content_type.startswith("image/") or name.lower().endswith(
+        (".jpg", ".jpeg", ".png", ".webp", ".bmp")
+    )
+    if not (video_ok or image_ok):
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Upload a short video (mp4/webm/mov). Demo uses video; production uses facility camera.",
+            "Upload a short video (mp4/webm/mov) or image (jpg/png). "
+            "Demo uses upload; production uses facility camera.",
         )
 
     data = await file.read()
@@ -260,18 +264,26 @@ async def characterize_stock(
         db.commit()
         db.refresh(asset)
 
+    status_text = str(decision.get("status") or "")
+    vision_msg = str(result.get("message") or "")
+    if not result.get("vision_ready") and vision_msg:
+        status_text = vision_msg
+
     return schemas.CharacterizeOut(
         asset=mappers.asset_out(asset),
         product_key=decision.get("product_key"),
         confidence=float(decision.get("confidence") or 0.0),
         detections=result.get("detections") or [],
+        boxes=result.get("boxes") or [],
+        preview_image_base64=result.get("preview_image_base64"),
         frames_sampled=int(result.get("frames_sampled") or 0),
         vision_model=result.get("model"),
         vision_ready=bool(result.get("vision_ready")),
         agent_source=str(decision.get("agent_source") or "static"),
-        status=str(decision.get("status") or ""),
+        status=status_text,
         guidance=str(decision.get("guidance") or ""),
         thresholds_applied=applied,
+        message=vision_msg,
     )
 
 
