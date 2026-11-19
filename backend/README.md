@@ -33,9 +33,10 @@ Seeded lab asset: **Lab produce storehouse** linked to device `CG-001`.
 
 See `.env.example`. Key vars:
 
-- `DATABASE_URL` — defaults to SQLite; use
-  `postgresql+psycopg://coldguard:coldguard@localhost:5432/coldguard` for Postgres.
-  Render/Heroku `postgres://` URLs are normalized automatically.
+- `DATABASE_URL` — defaults to SQLite. For production use the **Supabase
+  Transaction pooler** URI (`…pooler.supabase.com:6543/postgres`).
+  `postgres://` / `postgresql://` URLs are rewritten to `postgresql+psycopg://`.
+  Pooler hosts auto-enable `prepare_threshold=None` (or set `DATABASE_POOLER=true`).
 - `CORS_ORIGINS` — comma-separated production frontends (e.g. Vercel URL);
   localhost Vite ports are always allowed
 - `MQTT_ENABLED`, `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`
@@ -52,7 +53,9 @@ See `.env.example`. Key vars:
 
 Create a **Web Service** with **Runtime: Docker**, **Root Directory:** `backend`
 (builds `Dockerfile`). Health check: `/health`. Set `CORS_ORIGINS` to your
-Vercel URL and `MQTT_ENABLED=false` unless you use an external broker.
+Vercel URL. For live ESP32 readings set `MQTT_ENABLED=true`,
+`MQTT_HOST=broker.emqx.io`, `MQTT_PORT=1883` (matches the Arduino lab sketch).
+HTTP fallback: `POST /api/telemetry/ingest` with the same JSON payload.
 Full steps: root [README](../README.md#deploy-vercel--render).
 
 ```bash

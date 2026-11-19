@@ -60,6 +60,17 @@ tmp/
 temp/
 .cache/
 
+# Vision model weights — downloaded locally / on first run; not needed for Render
+# (Dockerfile only copies app/ + requirements; Ultralytics fetches weights at runtime)
+*.pt
+*.pth
+*.onnx
+*.safetensors
+backend/weights/
+backend/.mobileclip*
+*.part
+backend/.*.part
+
 # Docker (local overrides)
 docker-compose.override.yml
 ~$*

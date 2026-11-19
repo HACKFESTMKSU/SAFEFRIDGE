@@ -47,11 +47,22 @@ export function AssetDetailPage() {
   const [note, setNote] = useState('')
   const [profiles, setProfiles] = useState<ProduceProfile[]>([])
   const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [localPreviewUrl, setLocalPreviewUrl] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [agentError, setAgentError] = useState<string | null>(null)
   const [lastResult, setLastResult] = useState<CharacterizeResult | null>(null)
   const [manualKey, setManualKey] = useState('')
   const clock = useNow(1000)
+
+  useEffect(() => {
+    if (!videoFile) {
+      setLocalPreviewUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(videoFile)
+    setLocalPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [videoFile])
 
   const asset = assets.find((a) => a.id === id)
   const rows = asset?.deviceId ? getTelemetry(asset.deviceId) : NO_READINGS
@@ -114,7 +125,7 @@ export function AssetDetailPage() {
     try {
       const result = await characterizeStock(asset.id, videoFile)
       setLastResult(result)
-      setVideoFile(null)
+      // Keep the file selected so the local preview stays; annotated result shows below
     } catch (err) {
       setAgentError(err instanceof ApiError ? err.message : 'Characterize failed')
     } finally {
@@ -313,18 +324,76 @@ export function AssetDetailPage() {
         {agentError ? (
           <p style={{ color: 'var(--crit, #b42318)', marginBottom: 12 }}>{agentError}</p>
         ) : null}
+        {lastResult?.previewImageBase64 ? (
+          <figure className="vision-preview" style={{ margin: '0 0 14px' }}>
+            <img
+              src={`data:image/jpeg;base64,${lastResult.previewImageBase64}`}
+              alt="Vision sample with detections"
+              style={{
+                display: 'block',
+                width: '100%',
+                maxHeight: 420,
+                objectFit: 'contain',
+                borderRadius: 10,
+                background: 'var(--bg-elevated, #0f1410)',
+              }}
+            />
+            <figcaption style={{ marginTop: 8, fontSize: '0.85rem', color: 'var(--muted)' }}>
+              {lastResult.visionReady
+                ? `Sample frame · ${lastResult.boxes?.length ?? 0} box(es) · ${lastResult.framesSampled} frames · ${lastResult.visionModel ?? 'model'}`
+                : 'Sample frame (vision model not loaded — no boxes). Install ultralytics on the API host or pick a crop manually.'}
+            </figcaption>
+          </figure>
+        ) : null}
         {canCharacterizeStock(user.role) ? (
           <div style={{ display: 'grid', gap: 12 }}>
             <form className="form" onSubmit={onCharacterize}>
               <div className="field">
-                <label htmlFor="produce-video">Storehouse / cold-room video</label>
+                <label htmlFor="produce-video">Storehouse / cold-room video or photo</label>
                 <input
                   id="produce-video"
                   type="file"
-                  accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
-                  onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                  accept="video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,.mp4,.webm,.mov,.jpg,.jpeg,.png"
+                  onChange={(e) => {
+                    setVideoFile(e.target.files?.[0] ?? null)
+                    setLastResult(null)
+                  }}
                 />
               </div>
+              {localPreviewUrl && videoFile ? (
+                <div className="vision-local-preview" style={{ marginBottom: 8 }}>
+                  {videoFile.type.startsWith('image/') ? (
+                    <img
+                      src={localPreviewUrl}
+                      alt="Selected upload"
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        maxHeight: 280,
+                        objectFit: 'contain',
+                        borderRadius: 10,
+                        background: 'var(--bg-elevated, #0f1410)',
+                      }}
+                    />
+                  ) : (
+                    <video
+                      src={localPreviewUrl}
+                      controls
+                      muted
+                      style={{
+                        display: 'block',
+                        width: '100%',
+                        maxHeight: 280,
+                        borderRadius: 10,
+                        background: '#000',
+                      }}
+                    />
+                  )}
+                  <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: 'var(--muted)' }}>
+                    Selected: {videoFile.name}
+                  </p>
+                </div>
+              ) : null}
               <button className="btn sm" type="submit" disabled={busy || !videoFile}>
                 {busy ? 'Characterizing…' : 'Characterize stock'}
               </button>

@@ -28,7 +28,7 @@
 
 /* MQTT broker */
 #ifndef MQTT_HOST
-#define MQTT_HOST "192.168.100.5"      // TODO: set to your Mosquitto host/IP
+#define MQTT_HOST "192.168.61.179"     // LAN IP of the Mosquitto host (this PC)
 #endif
 #ifndef MQTT_PORT
 #define MQTT_PORT 1883               // 1883 plain, 8883 TLS
@@ -69,11 +69,10 @@
 /* ------------------------------------------------------------------ */
 /* Water sensor: raw ADC counts (0-4095 on ESP32 12-bit ADC) that count as "wet".
  * Calibrate: read dry value, wet value, set threshold mid-way. */
-#define WATER_WET_THRESHOLD  2000    // raw ADC counts
+#define WATER_WET_THRESHOLD  2700    // mid between dry~3800 and wet~1500
 #define WATER_LEVEL_MAX      4095
-/* 0 = wet when raw >= threshold (pull-down module). Set 1 if the module
- * idles HIGH when dry (active-high output). */
-#define WATER_WET_INVERT     0
+/* 0 = wet when raw >= threshold. 1 = idle HIGH when dry (this HW-038 board). */
+#define WATER_WET_INVERT     1
 
 /* ACS712 current sensor.
  *  - Variant "5A" : sensitivity 185 mV/A  (most common blue module)

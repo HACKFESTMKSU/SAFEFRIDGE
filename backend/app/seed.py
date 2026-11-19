@@ -80,7 +80,13 @@ def _resolve_stale_lab_incidents(db: Session, asset_id: str) -> None:
 
 
 def _ensure_lab_device(db: Session) -> None:
-    """Ensure CG-001 exists and every linked asset uses ambient lab thresholds."""
+    """Ensure CG-001 exists and every linked asset uses ambient lab thresholds.
+
+    Insert order matters on Postgres (Render): create the device *without*
+    asset_id first, then the asset with device_id, then link device.asset_id.
+    SQLite often skips FK checks so the old order worked locally and failed
+    in production with IntegrityError (sqlalchemy.exc / gkpj).
+    """
     device = db.get(Device, "CG-001")
     if device is None:
         device = Device(
@@ -88,7 +94,7 @@ def _ensure_lab_device(db: Session) -> None:
             name="ESP32 · Lab DHT11 + water",
             firmware_version="0.2.0-arduino",
             online=False,
-            asset_id="ast-001",
+            asset_id=None,
             last_seen=None,
         )
         db.add(device)
@@ -137,6 +143,7 @@ def _ensure_lab_device(db: Session) -> None:
             _resolve_stale_lab_incidents(db, asset.id)
 
     device.asset_id = assets[0].id
+    db.flush()
 
 
 def seed(db: Session) -> None:

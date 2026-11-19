@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -8,6 +9,7 @@ from .. import mappers, schemas
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Device, Telemetry, User
+from ..mqtt_client import TelemetryPayload, handle_telemetry
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
 
@@ -17,6 +19,21 @@ def _get_device(db: Session, device_id: str) -> Device:
     if device is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Device not found")
     return device
+
+
+@router.post("/ingest", status_code=status.HTTP_202_ACCEPTED)
+def ingest_telemetry(body: dict):
+    """Accept the same JSON the ESP32 publishes over MQTT (SRS §7).
+
+    Useful when the Render service cannot reach a broker, or for curl/scripts.
+    No auth — same trust model as an open lab MQTT topic.
+    """
+    try:
+        payload = TelemetryPayload.model_validate(body)
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()) from exc
+    handle_telemetry(payload)
+    return {"status": "accepted", "device_id": payload.device_id}
 
 
 @router.get("/{device_id}", response_model=list[schemas.TelemetryReading])

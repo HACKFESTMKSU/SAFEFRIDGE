@@ -32,12 +32,25 @@ def _get_int(key: str, default: int) -> int:
 
 
 def _normalize_database_url(url: str) -> str:
-    """Render/Heroku hand out postgres://; SQLAlchemy + psycopg need postgresql+psycopg://."""
+    """Render/Heroku/Supabase hand out postgres://; SQLAlchemy + psycopg need postgresql+psycopg://."""
     if url.startswith("postgres://"):
         url = "postgresql://" + url[len("postgres://") :]
     if url.startswith("postgresql://") and "+psycopg" not in url.split("://", 1)[0]:
         url = "postgresql+psycopg://" + url[len("postgresql://") :]
     return url
+
+
+def _is_transaction_pooler(url: str) -> bool:
+    """True for Supabase/PgBouncer transaction poolers (no prepared statements)."""
+    lower = url.lower()
+    if "pooler.supabase.com" in lower:
+        return True
+    if "pgbouncer=true" in lower:
+        return True
+    # Supabase transaction mode is typically :6543/
+    if ":6543/" in lower or lower.rstrip("/").endswith(":6543"):
+        return True
+    return False
 
 
 def _cors_origins() -> list[str]:
@@ -53,10 +66,16 @@ def _cors_origins() -> list[str]:
     return origins
 
 
+_raw_database_url = _get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'coldguard.db'}")
+_normalized_database_url = _normalize_database_url(_raw_database_url)
+
+
 class Settings:
-    DATABASE_URL: str = _normalize_database_url(
-        _get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'coldguard.db'}")
-    )
+    DATABASE_URL: str = _normalized_database_url
+    # Supabase "Transaction" pooler (port 6543) — disable psycopg prepared statements
+    DATABASE_IS_POOLER: bool = _is_transaction_pooler(
+        _normalized_database_url
+    ) or _get_bool("DATABASE_POOLER", False)
 
     JWT_SECRET: str = _get(
         "JWT_SECRET", "coldguard-dev-secret-change-in-production-0123456789"
@@ -87,7 +106,8 @@ class Settings:
     # Vision agent (Claude) — optional; static produce profiles used without a key
     ANTHROPIC_API_KEY: str = _get("ANTHROPIC_API_KEY")
     ANTHROPIC_MODEL: str = _get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
-    VISION_MODEL: str = _get("VISION_MODEL", "yoloe-26s-seg.pt")
+    # Default YOLOv8n (~6MB). Set yoloe-26s-seg.pt / yolov8s-worldv2.pt for open-vocab (huge downloads).
+    VISION_MODEL: str = _get("VISION_MODEL", "yolov8n.pt")
 
 
 settings = Settings()

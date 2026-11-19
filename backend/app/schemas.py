@@ -120,6 +120,8 @@ class CharacterizeOut(BaseModel):
     product_key: str | None = Field(default=None, alias="productKey")
     confidence: float = 0.0
     detections: list[dict] = Field(default_factory=list)
+    boxes: list[dict] = Field(default_factory=list)
+    preview_image_base64: str | None = Field(default=None, alias="previewImageBase64")
     frames_sampled: int = Field(default=0, alias="framesSampled")
     vision_model: str | None = Field(default=None, alias="visionModel")
     vision_ready: bool = Field(default=False, alias="visionReady")
@@ -127,6 +129,7 @@ class CharacterizeOut(BaseModel):
     status: str = ""
     guidance: str = ""
     thresholds_applied: bool = Field(default=False, alias="thresholdsApplied")
+    message: str = ""
 
 
 class AssetCreate(BaseModel):

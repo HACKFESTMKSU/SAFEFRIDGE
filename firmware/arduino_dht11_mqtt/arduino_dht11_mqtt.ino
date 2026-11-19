@@ -8,6 +8,9 @@
   Note: DHT11 often returns NaN when blasted with hot/humid air.
   We keep the last good reading and still publish so the dashboard
   never drops to a fake 0°C.
+
+  MQTT: LUBAN WORKSHOP blocks client↔client LAN, so we use a public
+  broker. Backend must use the same host (MQTT_HOST=broker.emqx.io).
 */
 
 #include <WiFi.h>
@@ -18,11 +21,18 @@
 #define DHTPIN 4
 #define DHTTYPE DHT11
 
-// Water level sensor (HW-038)
+// Water sensor wiring (HW-038):
+//   HW-038 (-) → ESP32 GND
+//   HW-038 (+) → ESP32 3V3   ← prefer 3V3 (stable). GPIO 7 also works if jumpered.
+//   HW-038 (S) → ESP32 GPIO 6
+// GPIO 7 is still driven HIGH so a (+)→GPIO7 jumper keeps working.
 #define WATER_PIN 6
 #define WATER_PWR 7
-#define WATER_DRY_RAW 0      // calibrate: reading when dry
-#define WATER_WET_RAW 2500   // calibrate: reading when submerged
+// Dry on your board lands ~3000–3900 (noisy). Wet usually DROPS.
+// After a real dip, set WATER_WET_RAW to the Serial water_raw you see.
+#define WATER_DRY_RAW  0
+#define WATER_WET_RAW 2000
+#define WATER_INVERT 1
 
 // Buzzer (active type)
 #define BUZZER_PIN 8
@@ -35,11 +45,14 @@
 #define WATER_ALERT_PERCENT 30
 #define WATER_WET_PERCENT 25
 
-const char* WIFI_SSID = "Phoenix";
-const char* WIFI_PASS = "Crypto.com";
-const char* MQTT_HOST = "192.168.100.5";
+const char* WIFI_SSID = "LUBAN WORKSHOP";
+const char* WIFI_PASS = "M@th3w77";
+// Public broker — workshop AP isolates LAN peers (ESP cannot reach PC:1883).
+// Backend must subscribe to the same host.
+const char* MQTT_HOST = "broker.emqx.io";
 const uint16_t MQTT_PORT = 1883;
 const char* DEVICE_ID = "CG-001";
+const char* MQTT_CLIENT_ID = "coldguard-CG-001-lab";
 
 // Faster publish so the UI can feel near real-time (poll is ~1.5s).
 const unsigned long SAMPLE_MS = 1500;
@@ -69,12 +82,16 @@ void maintainConnections() {
   if (!wifiAnnounced) {
     wifiAnnounced = true;
     Serial.print("WiFi connected, IP: ");
-    Serial.println(WiFi.localIP());
+    Serial.print(WiFi.localIP());
+    Serial.print("  GW: ");
+    Serial.println(WiFi.gatewayIP());
   }
   if (!mqtt.connected() && millis() - lastMqttTryMs > 3000) {
     lastMqttTryMs = millis();
-    Serial.print("MQTT...");
-    if (mqtt.connect(DEVICE_ID)) {
+    Serial.print("MQTT ");
+    Serial.print(MQTT_HOST);
+    Serial.print("...");
+    if (mqtt.connect(MQTT_CLIENT_ID)) {
       Serial.println("ok");
     } else {
       Serial.print("fail rc=");
@@ -84,18 +101,30 @@ void maintainConnections() {
 }
 
 int readWaterRaw() {
+  // Keep probe powered while sampling (GPIO7 HIGH). Prefer wiring (+) to 3V3.
   digitalWrite(WATER_PWR, HIGH);
-  delay(10);
-  long sum = 0;
-  for (int i = 0; i < 5; i++) {
-    sum += analogRead(WATER_PIN);
-    delay(2);
+  delay(50);  // HW-038 needs settle time when powered from a GPIO
+
+  int samples[9];
+  for (int i = 0; i < 9; i++) {
+    samples[i] = analogRead(WATER_PIN);
+    delay(3);
   }
-  digitalWrite(WATER_PWR, LOW);
-  return sum / 5;
+  // Median — rejects ADC spikes that made dry look "wet"
+  for (int i = 0; i < 8; i++) {
+    for (int j = i + 1; j < 9; j++) {
+      if (samples[j] < samples[i]) {
+        int tmp = samples[i];
+        samples[i] = samples[j];
+        samples[j] = tmp;
+      }
+    }
+  }
+  return samples[4];
 }
 
 int waterPercent(int raw) {
+  // dryRaw → 0%, wetRaw → 100% (inverted: dry is HIGH ADC on this module)
   int pct = map(raw, WATER_DRY_RAW, WATER_WET_RAW, 0, 100);
   return constrain(pct, 0, 100);
 }
@@ -153,7 +182,7 @@ void sampleAndPublish() {
   doc["alert_temperature"] = tempAlert;
   doc["alert_humidity"] = humAlert;
   doc["alert_water"] = waterAlert;
-  doc["firmware_version"] = "0.5.0-arduino";
+  doc["firmware_version"] = "0.5.1-arduino";
 
   char buffer[448];
   size_t n = serializeJson(doc, buffer);
@@ -179,14 +208,17 @@ void setup() {
   digitalWrite(BUZZER_PIN, LOW);
 
   analogReadResolution(12);
+  pinMode(WATER_PIN, INPUT);
   pinMode(WATER_PWR, OUTPUT);
-  digitalWrite(WATER_PWR, LOW);
+  digitalWrite(WATER_PWR, HIGH);  // leave powered; corrosion OK for short demo
   analogSetPinAttenuation(WATER_PIN, ADC_11db);
 
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setBufferSize(512);
+  mqtt.setKeepAlive(30);
+  mqtt.setSocketTimeout(10);
 
   lastSampleMs = millis() - SAMPLE_MS;
 }
