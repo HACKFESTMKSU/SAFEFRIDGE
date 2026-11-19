@@ -51,8 +51,8 @@ const units = [
   },
   {
     code: 'CG-003',
-    name: 'Fresh produce store',
-    keeps: 'Markets, food hubs and aggregation centres',
+    name: 'Produce storehouse',
+    keeps: 'Warehouses, farm stores and food hubs for agricultural produce',
     min: 2,
     max: 8,
     example: 6.1,
@@ -77,8 +77,8 @@ const pledges = [
     app, email or GSM SMS.
   </>,
   <>
-    We are <b>proud</b> to build for the hospitals, pharmacies, food hubs and markets that feed and heal
-    Kenya, and Africa.
+    We are <b>proud</b> to build for the hospitals, pharmacies, warehouses, farm storehouses and food hubs
+    that feed and heal Kenya, and Africa.
   </>,
 ]
 
@@ -100,7 +100,7 @@ const roadmap = [
   {
     img: '/images/produce_market.jpg',
     place: 'Kisumu',
-    title: 'Fresh produce food hub deployment',
+    title: 'Produce warehouse and storehouse deployment',
     date: 'Planned',
     done: false,
   },
@@ -190,8 +190,9 @@ export function LandingPage() {
                 </span>
               </h1>
               <p className="lp-lede">
-                ColdGuard watches the fridges, freezers and cold rooms that keep medicine, vaccines and fresh
-                food safe, and raises the alarm the moment one starts to warm.
+                ColdGuard watches fridges, freezers, cold rooms, and agricultural storehouses and warehouses
+                that keep medicine, vaccines, and produce safe — and raises the alarm the moment conditions
+                drift.
               </p>
               <div className="lp-cta-row">
                 <Link className="btn lg" to={demoTo}>

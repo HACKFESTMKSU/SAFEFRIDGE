@@ -1,10 +1,12 @@
 # ColdGuard
 
-Cold-storage monitoring prototype: ESP32 sensors → MQTT → dashboard → threshold alerts, with GSM SMS when Wi‑Fi is down.
+Environmental monitoring for cold rooms, warehouses, and storehouses: ESP32 sensors → MQTT → dashboard → threshold alerts, with GSM SMS when Wi‑Fi is down.
 
 ## What it does
 
-Monitor a fridge or small cold unit for temperature, humidity, compressor current, and water leaks. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
+ColdGuard watches temperature, humidity, water leaks, and (where fitted) compressor current across **pharmacy fridges, freezers, cold rooms, and agricultural storehouses / warehouses**. Staff see live readings and history, get threshold-based incidents, and can acknowledge/resolve them. Critical alerts can fall back to SMS via SIM800L if MQTT/Wi‑Fi is unavailable.
+
+**Who it’s for:** pharmacies and clinics protecting medicine and vaccines, and farms, markets, and food hubs protecting stored produce from spoilage when conditions drift.
 
 ## Hardware kit
 

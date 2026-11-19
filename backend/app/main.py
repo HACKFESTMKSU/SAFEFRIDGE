@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import mqtt_client, rules
-from .database import Base, SessionLocal, engine
+from .database import Base, SessionLocal, engine, ensure_schema_columns
 from .routers import api_router
 from .seed import seed
 
@@ -42,6 +42,7 @@ def _run_offline_check() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_schema_columns()
     with SessionLocal() as db:
         seed(db)
     logger.info("Database ready (seeded if empty)")

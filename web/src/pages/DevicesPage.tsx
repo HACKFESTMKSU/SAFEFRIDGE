@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Badge } from '../components/ui/Badge'
 import { useData } from '../context/DataContext'
-import { fmtRelative } from '../lib/format'
+import { fmtLastSeen } from '../lib/format'
 
 export function DevicesPage() {
   const { devices, assets, linkDevice } = useData()
@@ -46,7 +46,7 @@ export function DevicesPage() {
                         {device.online ? 'Online' : 'Offline'}
                       </Badge>
                     </td>
-                    <td>{fmtRelative(device.lastSeen)}</td>
+                    <td>{fmtLastSeen(device.lastSeen)}</td>
                     <td>{asset?.name ?? '—'}</td>
                     <td>
                       {linking === device.id ? (

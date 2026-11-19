@@ -42,7 +42,7 @@ class Asset(Base):
 
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=lambda: new_id("ast"))
     name: Mapped[str] = mapped_column(String(160))
-    type: Mapped[str] = mapped_column(String(20), default="refrigerator")  # refrigerator|freezer|cold_box
+    type: Mapped[str] = mapped_column(String(20), default="refrigerator")  # refrigerator|freezer|cold_box|warehouse
     location: Mapped[str] = mapped_column(String(200), default="")
     status: Mapped[str] = mapped_column(String(20), default="active")  # active|inactive|maintenance
 
@@ -59,6 +59,17 @@ class Asset(Base):
     device_id: Mapped[str | None] = mapped_column(
         String(40), ForeignKey("devices.id", use_alter=True), nullable=True
     )
+
+    # Vision / agent produce characterization (agri storehouses & cold rooms)
+    product_key: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    detection_confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_detection_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    detection_source: Mapped[str | None] = mapped_column(
+        String(40), nullable=True
+    )  # video_upload | camera | manual
+    agent_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     # Independent many-to-one links (asset.device_id and device.asset_id are
     # kept in sync by the API layer; they are not ORM back-references).

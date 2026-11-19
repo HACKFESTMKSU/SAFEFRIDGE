@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LogOut,
   PanelLeft,
+  ScrollText,
   SlidersHorizontal,
   UserRound,
   Users,
@@ -19,7 +20,7 @@ import { useData } from '../../context/DataContext'
 import { useNow } from '../../hooks/motion'
 import { useMedia } from '../../hooks/useMedia'
 import { canEditThresholds, canManageDevices, canManageUsers } from '../../lib/roles'
-import { fmtAgo, roleLabel } from '../../lib/format'
+import { fmtAgo, roleLabel, tsMs } from '../../lib/format'
 
 const COLLAPSE_KEY = 'coldguard.sidebar'
 const MOBILE_QUERY = '(max-width: 1040px)'
@@ -35,6 +36,7 @@ interface NavItem {
 const TITLES: [string, string][] = [
   ['/assets', 'Assets'],
   ['/incidents', 'Incidents'],
+  ['/logs', 'Logs'],
   ['/devices', 'Devices'],
   ['/users', 'Users'],
   ['/settings', 'Thresholds'],
@@ -59,7 +61,7 @@ function saveCollapsed(collapsed: boolean) {
 
 export function AppShell() {
   const { user, logout } = useAuth()
-  const { incidents, connected, lastUpdated } = useData()
+  const { incidents, devices, connected, lastUpdated } = useData()
   const { pathname } = useLocation()
   const mobile = useMedia(MOBILE_QUERY)
   const [collapsed, setCollapsed] = useState(readCollapsed)
@@ -109,6 +111,7 @@ export function AppShell() {
         { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
         { to: '/assets', label: 'Assets', icon: Box },
         { to: '/incidents', label: 'Incidents', icon: AlertTriangle, count: openCount },
+        { to: '/logs', label: 'Logs', icon: ScrollText },
       ],
     },
     ...(manage.length ? [{ label: 'Manage', items: manage }] : []),
@@ -123,7 +126,24 @@ export function AppShell() {
     .join('')
     .slice(0, 2)
     .toUpperCase()
-  const live = connected && lastUpdated != null
+  // "Live" means an ESP32 is reporting — not just that the API poll succeeded.
+  const apiOk = connected && lastUpdated != null
+  const onlineCount = devices.filter((d) => d.online).length
+  const lastHeartbeat = devices.reduce<number | null>((acc, d) => {
+    if (!d.lastSeen) return acc
+    const t = tsMs(d.lastSeen)
+    return t > 0 && (acc == null || t > acc) ? t : acc
+  }, null)
+  const live = apiOk && onlineCount > 0
+  const pillClass = !apiOk ? 'down' : live ? '' : 'idle'
+  const pillLabel = !apiOk ? 'Offline' : live ? 'Live' : 'No devices'
+  const pillWhen = !apiOk
+    ? 'API unreachable'
+    : live
+      ? `${onlineCount} online · ${lastHeartbeat ? `updated ${fmtAgo(lastHeartbeat, now)}` : 'reporting'}`
+      : devices.length
+        ? `0 of ${devices.length} reporting`
+        : 'waiting for first device'
   const rail = collapsed && !mobile
   const closeDrawer = () => setDrawerOpen(false)
 
@@ -210,12 +230,10 @@ export function AppShell() {
             <span aria-hidden="true">/</span>
             <strong>{title}</strong>
           </div>
-          <span className={`live-pill ${live ? '' : 'down'}`} role="status">
+          <span className={`live-pill ${pillClass}`} role="status">
             <span className="live-dot" aria-hidden="true" />
-            <strong>{live ? 'Live' : 'Offline'}</strong>
-            <span className="live-when">
-              {live && lastUpdated != null ? `updated ${fmtAgo(lastUpdated, now)}` : 'API unreachable'}
-            </span>
+            <strong>{pillLabel}</strong>
+            <span className="live-when">{pillWhen}</span>
           </span>
         </header>
 

@@ -55,5 +55,10 @@ class Settings:
         "NOTIFY_EMAILS", "operator@coldguard.local,admin@coldguard.local"
     )
 
+    # Vision agent (Claude) — optional; static produce profiles used without a key
+    ANTHROPIC_API_KEY: str = _get("ANTHROPIC_API_KEY")
+    ANTHROPIC_MODEL: str = _get("ANTHROPIC_MODEL", "claude-sonnet-4-5")
+    VISION_MODEL: str = _get("VISION_MODEL", "yoloe-26s-seg.pt")
+
 
 settings = Settings()

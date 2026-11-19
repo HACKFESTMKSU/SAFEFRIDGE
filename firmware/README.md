@@ -1,6 +1,6 @@
 # ColdGuard — ESP32 Firmware
 
-Edge firmware for the ColdGuard cold-storage monitor (SRS v2.1). Reads
+Edge firmware for ColdGuard (SRS v2.2) — fridges, cold rooms, and storehouses/warehouses. Reads
 DHT11, water sensor, ACS712, publishes MQTT
 telemetry per SRS §7, buffers readings in LittleFS during outages (FR-14),
 and sends critical GSM SMS via SIM800L when the cloud path is down

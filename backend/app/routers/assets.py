@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import asyncio
+import logging
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from .. import mappers, schemas
+from .. import agent, mappers, schemas, vision
 from ..auth import admin_only, get_current_user
 from ..database import get_db
-from ..models import Asset, Device, MaintenanceNote, User
+from ..models import Asset, Device, MaintenanceNote, Telemetry, User, utcnow
+from ..produce import all_profiles, get_profile
+
+logger = logging.getLogger("coldguard.assets")
 
 router = APIRouter(prefix="/assets", tags=["assets"])
 
@@ -15,6 +21,33 @@ def _get_asset(db: Session, asset_id: str) -> Asset:
     if asset is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Asset not found")
     return asset
+
+
+# Static paths first (before /{asset_id}/...)
+@router.get("/produce/profiles", response_model=list[schemas.ProduceProfileOut])
+def list_produce_profiles(_: User = Depends(get_current_user)):
+    """Agri produce storage profiles used by the vision agent."""
+    out = []
+    for row in all_profiles():
+        out.append(
+            schemas.ProduceProfileOut(
+                product_key=row["product_key"],
+                label=row["label"],
+                temp_min_c=row["temp_min_c"],
+                temp_max_c=row["temp_max_c"],
+                temp_warning_c=row["temp_warning_c"],
+                temp_critical_c=row["temp_critical_c"],
+                humidity_max_percent=row["humidity_max_percent"],
+                notes=row["notes"],
+                vision_prompts=list(row["vision_prompts"]),
+            )
+        )
+    return out
+
+
+@router.get("/vision/status")
+def get_vision_status(_: User = Depends(get_current_user)):
+    return vision.vision_status()
 
 
 @router.get("", response_model=list[schemas.AssetOut])
@@ -119,6 +152,159 @@ def update_thresholds(
         setattr(asset, field, value)
     if sms is not None:
         asset.sms_recipients = sms
+    db.commit()
+    db.refresh(asset)
+    return mappers.asset_out(asset)
+
+
+# ---------- Produce characterization (vision + agent) ----------
+
+def _latest_telemetry_dict(db: Session, asset: Asset) -> dict | None:
+    if not asset.device_id:
+        return None
+    row = db.scalar(
+        select(Telemetry)
+        .where(Telemetry.device_id == asset.device_id)
+        .order_by(Telemetry.timestamp.desc())
+        .limit(1)
+    )
+    if row is None:
+        return None
+    return {
+        "temperature_c": row.temperature_c,
+        "humidity_percent": row.humidity_percent,
+        "current_a": row.current_a,
+        "water_level": row.water_level,
+        "water_wet": row.water_wet,
+        "timestamp": row.timestamp.isoformat() if row.timestamp else None,
+    }
+
+
+@router.post("/{asset_id}/characterize", response_model=schemas.CharacterizeOut)
+async def characterize_stock(
+    asset_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Upload a short storehouse/cold-room video; YOLOE + Claude adapt produce thresholds.
+
+    Demo path: video upload. Production path will feed ESP32-CAM frames into the
+    same characterization + agent loop.
+    """
+    if user.role not in ("admin", "operator"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin or Operator required")
+
+    asset = _get_asset(db, asset_id)
+    content_type = (file.content_type or "").lower()
+    name = file.filename or "clip.mp4"
+    if not (
+        content_type.startswith("video/")
+        or name.lower().endswith((".mp4", ".webm", ".mov", ".avi", ".mkv"))
+    ):
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Upload a short video (mp4/webm/mov). Demo uses video; production uses facility camera.",
+        )
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Empty upload")
+
+    try:
+        result = await asyncio.to_thread(vision.characterize_video, data, name)
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
+    except Exception as exc:
+        logger.exception("Characterize failed")
+        raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"Vision failed: {exc}") from exc
+
+    telemetry = _latest_telemetry_dict(db, asset)
+    decision = agent.decide_and_explain(
+        product_key=result.get("top_product_key"),
+        detections=result.get("detections") or [],
+        confidence=float(result.get("confidence") or 0.0),
+        telemetry=telemetry,
+        asset_name=asset.name,
+    )
+
+    applied = False
+    profile = decision.get("profile")
+    if decision.get("apply_thresholds") and profile is not None:
+        agent.apply_profile_to_asset(asset, profile)
+        asset.detection_confidence = float(decision.get("confidence") or 0.0)
+        asset.last_detection_at = utcnow()
+        asset.detection_source = "video_upload"
+        asset.agent_notes = f"{decision.get('status', '')} | {decision.get('guidance', '')}".strip(" |")
+        applied = True
+        db.add(
+            MaintenanceNote(
+                asset_id=asset.id,
+                author_id=user.id,
+                author_name=user.name or user.email,
+                body=(
+                    f"Vision agent applied {profile.label} thresholds "
+                    f"({profile.temp_min_c}–{profile.temp_max_c}°C) via {decision.get('agent_source')}."
+                ),
+            )
+        )
+        db.commit()
+        db.refresh(asset)
+    else:
+        asset.agent_notes = decision.get("status")
+        asset.last_detection_at = utcnow()
+        asset.detection_source = "video_upload"
+        asset.detection_confidence = float(decision.get("confidence") or 0.0)
+        if decision.get("product_key"):
+            asset.product_key = decision["product_key"]
+        db.commit()
+        db.refresh(asset)
+
+    return schemas.CharacterizeOut(
+        asset=mappers.asset_out(asset),
+        product_key=decision.get("product_key"),
+        confidence=float(decision.get("confidence") or 0.0),
+        detections=result.get("detections") or [],
+        frames_sampled=int(result.get("frames_sampled") or 0),
+        vision_model=result.get("model"),
+        vision_ready=bool(result.get("vision_ready")),
+        agent_source=str(decision.get("agent_source") or "static"),
+        status=str(decision.get("status") or ""),
+        guidance=str(decision.get("guidance") or ""),
+        thresholds_applied=applied,
+    )
+
+
+@router.post("/{asset_id}/produce", response_model=schemas.AssetOut)
+def apply_produce_manual(
+    asset_id: str,
+    body: schemas.ApplyProduceRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Manually set produce profile when vision is unavailable or wrong."""
+    if user.role not in ("admin", "operator"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin or Operator required")
+    asset = _get_asset(db, asset_id)
+    profile = get_profile(body.product_key)
+    if profile is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Unknown product_key: {body.product_key}")
+    agent.apply_profile_to_asset(asset, profile)
+    asset.detection_confidence = 1.0
+    asset.last_detection_at = utcnow()
+    asset.detection_source = "manual"
+    asset.agent_notes = (
+        f"{profile.label} profile applied manually. "
+        f"Safe band {profile.temp_min_c}–{profile.temp_max_c}°C. {profile.notes}"
+    )
+    db.add(
+        MaintenanceNote(
+            asset_id=asset.id,
+            author_id=user.id,
+            author_name=user.name or user.email,
+            body=f"Manual produce profile: {profile.label} ({profile.temp_min_c}–{profile.temp_max_c}°C).",
+        )
+    )
     db.commit()
     db.refresh(asset)
     return mappers.asset_out(asset)

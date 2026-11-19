@@ -1,6 +1,6 @@
 # ColdGuard Web (MVP)
 
-React + Vite frontend for the ColdGuard cold-storage monitoring prototype.
+React + Vite frontend for ColdGuard — monitoring fridges, cold rooms, and agricultural storehouses / warehouses.
 
 ## Run
 
