@@ -107,9 +107,9 @@ def _ensure_lab_device(db: Session) -> None:
         if asset is None:
             asset = Asset(
                 id="ast-001",
-                name="Lab sensor unit",
-                type="refrigerator",
-                location="Hackathon lab",
+                name="Lab produce storehouse",
+                type="warehouse",
+                location="Hackathon lab · food hub demo",
                 status="active",
                 device_id="CG-001",
                 sms_recipients=["+254700000002"],
@@ -124,9 +124,14 @@ def _ensure_lab_device(db: Session) -> None:
     for asset in assets:
         asset.device_id = "CG-001"
         # Keep a clear lab name if this is still the seeded pharmacy placeholder.
-        if asset.id == "ast-001" or asset.name in ("Pharmacy Fridge A", "Lab sensor unit"):
-            asset.name = "Lab sensor unit"
-            asset.location = "Hackathon lab"
+        if asset.id == "ast-001" or asset.name in (
+            "Pharmacy Fridge A",
+            "Lab sensor unit",
+            "Lab produce storehouse",
+        ):
+            asset.name = "Lab produce storehouse"
+            asset.type = "warehouse"
+            asset.location = "Hackathon lab · food hub demo"
         changed = _apply_lab_thresholds(asset)
         if changed:
             _resolve_stale_lab_incidents(db, asset.id)

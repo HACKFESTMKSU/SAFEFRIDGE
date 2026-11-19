@@ -23,3 +23,7 @@ export function canAckResolve(role: Role) {
 export function canAddMaintenanceNote(role: Role) {
   return role === 'admin' || role === 'technician'
 }
+
+export function canCharacterizeStock(role: Role) {
+  return role === 'admin' || role === 'operator'
+}

@@ -32,6 +32,11 @@ def asset_out(a: Asset) -> schemas.AssetOut:
         thresholds=thresholds_out(a),
         device_id=a.device_id,
         sms_recipients=a.sms_recipients or [],
+        product_key=getattr(a, "product_key", None),
+        detection_confidence=getattr(a, "detection_confidence", None),
+        last_detection_at=getattr(a, "last_detection_at", None),
+        detection_source=getattr(a, "detection_source", None),
+        agent_notes=getattr(a, "agent_notes", None),
     )
 
 

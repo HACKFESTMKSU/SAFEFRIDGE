@@ -1,11 +1,10 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { LiveChart, type ChartPoint } from '../components/charts/LiveChart'
 import { Sparkline } from '../components/charts/Sparkline'
 import { Badge } from '../components/ui/Badge'
 import { CountUp } from '../components/ui/CountUp'
-import { Segmented } from '../components/ui/Segmented'
 import { useAuth } from '../context/AuthContext'
 import { useData } from '../context/DataContext'
 import { useNow } from '../hooks/motion'
@@ -21,17 +20,37 @@ import {
   statusLabel,
   tempTone,
   toneLabel,
-  tsMs,
 } from '../lib/format'
-import { canAddMaintenanceNote } from '../lib/roles'
-import { NO_READINGS, RANGE_MS, incidentMarkers, toSeries, type Range } from '../lib/telemetry'
+import { canAddMaintenanceNote, canCharacterizeStock } from '../lib/roles'
+import { NO_READINGS, RANGE_MS, incidentMarkers, toSeries } from '../lib/telemetry'
+import type { CharacterizeResult, ProduceProfile } from '../types'
+import { ApiError } from '../lib/api'
+
+/** Live asset chart uses a short window; full history is on /logs. */
+const LIVE_WINDOW: keyof typeof RANGE_MS = '30m'
 
 export function AssetDetailPage() {
   const { id } = useParams()
   const { user } = useAuth()
-  const { assets, devices, incidents, notes, getTelemetry, getLatest, addNote } = useData()
+  const {
+    assets,
+    devices,
+    incidents,
+    notes,
+    getTelemetry,
+    getLatest,
+    addNote,
+    listProduceProfiles,
+    characterizeStock,
+    applyProduce,
+  } = useData()
   const [note, setNote] = useState('')
-  const [rangeChoice, setRangeChoice] = useState<Range | null>(null)
+  const [profiles, setProfiles] = useState<ProduceProfile[]>([])
+  const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [agentError, setAgentError] = useState<string | null>(null)
+  const [lastResult, setLastResult] = useState<CharacterizeResult | null>(null)
+  const [manualKey, setManualKey] = useState('')
   const clock = useNow(1000)
 
   const asset = assets.find((a) => a.id === id)
@@ -42,6 +61,20 @@ export function AssetDetailPage() {
   const hpa = useMemo(() => toSeries(rows, 'pressure_hpa'), [rows])
   const ambient = useMemo(() => toSeries(rows, 'bmp_temperature_c'), [rows])
   const vapour = useMemo(() => toSeries(rows, 'mq3_raw'), [rows])
+
+  useEffect(() => {
+    let cancelled = false
+    listProduceProfiles()
+      .then((rows) => {
+        if (!cancelled) setProfiles(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setProfiles([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [listProduceProfiles])
 
   if (!asset || !user) {
     return (
@@ -56,21 +89,52 @@ export function AssetDetailPage() {
 
   const device = devices.find((d) => d.id === asset.deviceId)
   const latest = asset.deviceId ? getLatest(asset.deviceId) : null
-  const latestAt = latest ? tsMs(latest.timestamp) : null
-  const range: Range = rangeChoice ?? (latestAt && clock - latestAt < RANGE_MS['30m'] ? '30m' : '24h')
-  const domain: [number, number] = [clock - RANGE_MS[range], clock]
+  const domain: [number, number] = [clock - RANGE_MS[LIVE_WINDOW], clock]
   const assetIncidents = incidents
     .filter((i) => i.assetId === asset.id)
     .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt))
   const assetNotes = notes.filter((n) => n.assetId === asset.id)
   const t = asset.thresholds
   const tone = tempTone(latest?.temperature_c, t)
+  const produceLabel =
+    profiles.find((p) => p.productKey === asset.productKey)?.label ?? asset.productKey ?? null
 
   function onNote(e: FormEvent) {
     e.preventDefault()
     if (!note.trim() || !asset) return
     addNote(asset.id, note.trim())
     setNote('')
+  }
+
+  async function onCharacterize(e: FormEvent) {
+    e.preventDefault()
+    if (!asset || !videoFile) return
+    setBusy(true)
+    setAgentError(null)
+    try {
+      const result = await characterizeStock(asset.id, videoFile)
+      setLastResult(result)
+      setVideoFile(null)
+    } catch (err) {
+      setAgentError(err instanceof ApiError ? err.message : 'Characterize failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onManualApply(e: FormEvent) {
+    e.preventDefault()
+    if (!asset || !manualKey) return
+    setBusy(true)
+    setAgentError(null)
+    try {
+      await applyProduce(asset.id, manualKey)
+      setLastResult(null)
+    } catch (err) {
+      setAgentError(err instanceof ApiError ? err.message : 'Could not apply produce profile')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -168,28 +232,17 @@ export function AssetDetailPage() {
           <div className="live-id">
             <h2 style={{ fontSize: '1rem', fontWeight: 600 }}>Temperature</h2>
             <span className="live-meta">
-              {latest ? `Last reading ${fmtRelative(latest.timestamp)}.` : 'Waiting for the first reading.'}{' '}
-              {device ? `${device.id} last seen ${fmtRelative(device.lastSeen)}.` : ''}
+              {latest ? `Last reading ${fmtRelative(latest.timestamp)}. Showing last 30 minutes.` : 'Waiting for the first reading.'}{' '}
+              {device
+                ? device.lastSeen
+                  ? `${device.id} last seen ${fmtRelative(device.lastSeen)}.`
+                  : `${device.id} has not reported yet.`
+                : ''}{' '}
+              <Link to={device ? `/logs?device=${encodeURIComponent(device.id)}` : '/logs'}>
+                Browse history on Logs
+              </Link>
             </span>
           </div>
-          <Segmented
-            label="Time window"
-            value={range}
-            onChange={setRangeChoice}
-            options={[
-              {
-                value: '30m',
-                label: (
-                  <>
-                    {device?.online ? <span className="seg-live" aria-hidden="true" /> : null}
-                    30 min
-                  </>
-                ),
-              },
-              { value: '6h', label: '6 h' },
-              { value: '24h', label: '24 h' },
-            ]}
-          />
         </div>
         <div className="live-body">
           <LiveChart
@@ -205,15 +258,10 @@ export function AssetDetailPage() {
               { value: t.tempCriticalC, tone: 'crit', label: `Critical ${t.tempCriticalC}°C` },
             ]}
             markers={incidentMarkers(incidents, asset.id)}
-            showTable
             emptyText={
               <>
-                No readings in this window.{' '}
-                {range !== '24h' ? (
-                  <button type="button" className="btn secondary sm" onClick={() => setRangeChoice('24h')}>
-                    Show 24 hours
-                  </button>
-                ) : null}
+                No readings in the last 30 minutes.{' '}
+                <Link to="/logs">Open logs</Link>
               </>
             }
           />
@@ -223,11 +271,90 @@ export function AssetDetailPage() {
           <Mini label="Ambient temperature" value={latest ? fmtTemp(latest.bmp_temperature_c) : '—'} points={ambient} domain={domain} />
           <Mini
             label="MQ-3 vapour (demo only)"
-            value={latest ? String(latest.mq3_raw) : '—'}
+            value={latest?.mq3_raw != null ? String(latest.mq3_raw) : '—'}
             points={vapour}
             domain={domain}
           />
         </div>
+      </section>
+
+      <section className="panel panel-pad" aria-label="Produce vision agent">
+        <div className="panel-head">
+          <h2>Produce agent</h2>
+          {produceLabel ? <Badge tone="ok">{produceLabel}</Badge> : <Badge tone="neutral">No crop set</Badge>}
+        </div>
+        <p style={{ margin: '0 0 12px', color: 'var(--muted)', fontSize: '0.9rem' }}>
+          Demo: upload a short storehouse / cold-room video. YOLOE-26 characterizes the crop; Claude
+          adapts safe bands for the same sensors. Production will use a facility camera (ESP32-CAM).
+        </p>
+        <dl className="kv" style={{ marginBottom: 14 }}>
+          <dt>Active crop</dt>
+          <dd>{produceLabel ?? '—'}</dd>
+          <dt>Agent status</dt>
+          <dd>{lastResult?.status || asset.agentNotes || 'Upload a clip or pick a crop to adapt thresholds.'}</dd>
+          <dt>Source</dt>
+          <dd>
+            {asset.detectionSource ?? '—'}
+            {asset.detectionConfidence != null
+              ? ` · confidence ${(asset.detectionConfidence * 100).toFixed(0)}%`
+              : ''}
+            {lastResult?.agentSource ? ` · ${lastResult.agentSource}` : ''}
+          </dd>
+          <dt>Applied band</dt>
+          <dd>
+            {t.tempMinC}–{t.tempMaxC}°C · humidity max {t.humidityMaxPercent ?? '—'}%
+          </dd>
+        </dl>
+        {lastResult?.guidance ? (
+          <p style={{ margin: '0 0 12px', fontSize: '0.9rem' }}>
+            <strong>Guidance:</strong> {lastResult.guidance}
+          </p>
+        ) : null}
+        {agentError ? (
+          <p style={{ color: 'var(--crit, #b42318)', marginBottom: 12 }}>{agentError}</p>
+        ) : null}
+        {canCharacterizeStock(user.role) ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <form className="form" onSubmit={onCharacterize}>
+              <div className="field">
+                <label htmlFor="produce-video">Storehouse / cold-room video</label>
+                <input
+                  id="produce-video"
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+                  onChange={(e) => setVideoFile(e.target.files?.[0] ?? null)}
+                />
+              </div>
+              <button className="btn sm" type="submit" disabled={busy || !videoFile}>
+                {busy ? 'Characterizing…' : 'Characterize stock'}
+              </button>
+            </form>
+            <form className="form" onSubmit={onManualApply} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'end' }}>
+              <div className="field" style={{ flex: 1, minWidth: 160 }}>
+                <label htmlFor="manual-produce">Or pick produce manually</label>
+                <select
+                  id="manual-produce"
+                  value={manualKey}
+                  onChange={(e) => setManualKey(e.target.value)}
+                >
+                  <option value="">Select crop…</option>
+                  {profiles.map((p) => (
+                    <option key={p.productKey} value={p.productKey}>
+                      {p.label} ({p.tempMinC}–{p.tempMaxC}°C)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button className="btn secondary sm" type="submit" disabled={busy || !manualKey}>
+                Apply profile
+              </button>
+            </form>
+          </div>
+        ) : (
+          <p style={{ color: 'var(--muted)', fontSize: '0.85rem', margin: 0 }}>
+            Admin or Operator can run characterization.
+          </p>
+        )}
       </section>
 
       <div className="grid grid-2">

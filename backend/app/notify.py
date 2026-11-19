@@ -1,13 +1,13 @@
 """Email notification hook (FR-19 / FR-22).
 
-Sends email via SMTP when SMTP_HOST is configured; otherwise logs the
+Sends email via Resend when RESEND_API_KEY is set; otherwise logs the
 notification so the demo still shows incidents in-app.
 """
 
+import html
 import logging
-import smtplib
-from email.message import EmailMessage
 
+import resend
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -25,8 +25,18 @@ def _recipients(db: Session, asset: Asset) -> list[str]:
     return sorted(set(emails))
 
 
+def _html_body(asset_name: str, incident: Incident, text_body: str) -> str:
+    safe = html.escape(text_body).replace("\n", "<br>\n")
+    return (
+        f"<h2>ColdGuard incident</h2>"
+        f"<p><strong>{html.escape(asset_name)}</strong> — "
+        f"{html.escape(incident.severity.upper())}</p>"
+        f"<p>{safe}</p>"
+    )
+
+
 def notify_incident(db: Session, incident: Incident) -> None:
-    """Called when a new incident is created. Email on critical, log otherwise."""
+    """Called when a new incident is created. Email when Resend is configured."""
     asset = db.get(Asset, incident.asset_id)
     asset_name = asset.name if asset else incident.asset_id
     subject = f"[ColdGuard] {incident.severity.upper()}: {incident.title} — {asset_name}"
@@ -40,28 +50,23 @@ def notify_incident(db: Session, incident: Incident) -> None:
     )
     to = _recipients(db, asset) if asset else []
 
-    if not settings.SMTP_HOST or not to:
-        logger.info("SMTP not configured — incident %s logged only.\n%s", incident.id, body)
+    if not settings.RESEND_API_KEY or not to:
+        logger.info("Resend not configured — incident %s logged only.\n%s", incident.id, body)
         return
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = settings.SMTP_FROM
-    msg["To"] = ", ".join(to)
-    msg.set_content(body)
-
+    resend.api_key = settings.RESEND_API_KEY
     try:
-        if settings.SMTP_USE_TLS:
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as s:
-                s.starttls()
-                if settings.SMTP_USERNAME:
-                    s.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-                s.send_message(msg)
-        else:
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as s:
-                if settings.SMTP_USERNAME:
-                    s.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD)
-                s.send_message(msg)
-        logger.info("Incident notification emailed to %s", to)
+        result = resend.Emails.send(
+            {
+                "from": settings.RESEND_FROM,
+                "to": to,
+                "subject": subject,
+                "text": body,
+                "html": _html_body(asset_name, incident, body),
+            },
+            idempotency_key=f"incident-notify/{incident.id}",
+        )
+        email_id = result.get("id") if isinstance(result, dict) else getattr(result, "id", None)
+        logger.info("Incident notification emailed to %s (id=%s)", to, email_id)
     except Exception as exc:  # never let notify break ingestion
-        logger.warning("Failed to send incident email: %s", exc)
+        logger.warning("Failed to send incident email via Resend: %s", exc)

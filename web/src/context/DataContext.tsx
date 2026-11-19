@@ -8,12 +8,14 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { api } from '../lib/api'
+import { api, apiUpload } from '../lib/api'
 import type {
   Asset,
+  CharacterizeResult,
   Device,
   Incident,
   MaintenanceNote,
+  ProduceProfile,
   TelemetryReading,
   Thresholds,
   User,
@@ -39,6 +41,9 @@ interface DataState {
   resolveIncident: (id: string, note: string) => Promise<void>
   addNote: (assetId: string, body: string, incidentId?: string) => Promise<void>
   upsertUser: (user: User) => Promise<void>
+  listProduceProfiles: () => Promise<ProduceProfile[]>
+  characterizeStock: (assetId: string, file: File) => Promise<CharacterizeResult>
+  applyProduce: (assetId: string, productKey: string) => Promise<Asset>
 }
 
 const DataContext = createContext<DataState | null>(null)
@@ -51,7 +56,8 @@ const POLL_META_MS = 15_000
 const POLL_FULL_MS = 60_000
 
 function normDevice(d: Device): Device {
-  return { ...d, lastSeen: d.lastSeen ?? new Date(0).toISOString() }
+  // Keep null lastSeen as null — epoch coercion made never-seen devices look like "55 years ago".
+  return { ...d, lastSeen: d.lastSeen ?? null }
 }
 
 function normReading(r: TelemetryReading): TelemetryReading {
@@ -316,6 +322,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const listProduceProfiles = useCallback(async () => {
+    return api<ProduceProfile[]>('/assets/produce/profiles')
+  }, [])
+
+  const characterizeStock = useCallback(async (assetId: string, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    const result = await apiUpload<CharacterizeResult>(`/assets/${assetId}/characterize`, form)
+    setAssets((prev) => prev.map((a) => (a.id === assetId ? result.asset : a)))
+    await loadNotes([result.asset])
+    return result
+  }, [loadNotes])
+
+  const applyProduce = useCallback(async (assetId: string, productKey: string) => {
+    const updated = await api<Asset>(`/assets/${assetId}/produce`, {
+      method: 'POST',
+      body: { productKey },
+    })
+    setAssets((prev) => prev.map((a) => (a.id === assetId ? updated : a)))
+    await loadNotes([updated])
+    return updated
+  }, [loadNotes])
+
   const upsertUser = useCallback(async (next: User) => {
     try {
       const exists = users.some((u) => u.id === next.id)
@@ -370,6 +399,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       resolveIncident,
       addNote,
       upsertUser,
+      listProduceProfiles,
+      characterizeStock,
+      applyProduce,
     }),
     [
       assets,
@@ -389,6 +421,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       resolveIncident,
       addNote,
       upsertUser,
+      listProduceProfiles,
+      characterizeStock,
+      applyProduce,
     ],
   )
 

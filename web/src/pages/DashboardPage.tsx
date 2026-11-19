@@ -5,7 +5,6 @@ import { Sparkline } from '../components/charts/Sparkline'
 import { BandMeter } from '../components/charts/BandMeter'
 import { Badge } from '../components/ui/Badge'
 import { CountUp } from '../components/ui/CountUp'
-import { Segmented } from '../components/ui/Segmented'
 import { useData } from '../context/DataContext'
 import { useNow } from '../hooks/motion'
 import {
@@ -20,13 +19,15 @@ import {
   toneLabel,
   tsMs,
 } from '../lib/format'
-import { NO_READINGS, RANGE_MS, incidentMarkers, toSeries, type Range } from '../lib/telemetry'
+import { NO_READINGS, RANGE_MS, incidentMarkers, toSeries } from '../lib/telemetry'
 import type { Asset } from '../types'
+
+/** Live dashboard always shows a short rolling window; history lives on /logs. */
+const LIVE_WINDOW: keyof typeof RANGE_MS = '30m'
 
 export function DashboardPage() {
   const { assets, devices, incidents, getLatest, getTelemetry } = useData()
   const [assetChoice, setAssetChoice] = useState<string | null>(null)
-  const [rangeChoice, setRangeChoice] = useState<Range | null>(null)
 
   const linked = assets.filter((a) => a.deviceId)
   const primary =
@@ -37,12 +38,9 @@ export function DashboardPage() {
   const device = devices.find((d) => d.id === primary?.deviceId)
   const rows = primary?.deviceId ? getTelemetry(primary.deviceId) : NO_READINGS
   const latest = primary?.deviceId ? getLatest(primary.deviceId) : null
-  const latestAt = latest ? tsMs(latest.timestamp) : null
 
   const clock = useNow(1000)
-  // Default to the live window only when the unit is actually reporting.
-  const range: Range = rangeChoice ?? (latestAt && clock - latestAt < RANGE_MS['30m'] ? '30m' : '24h')
-  const domain: [number, number] = [clock - RANGE_MS[range], clock]
+  const domain: [number, number] = [clock - RANGE_MS[LIVE_WINDOW], clock]
 
   const temps = useMemo(() => toSeries(rows, 'temperature_c'), [rows])
   const hums = useMemo(() => toSeries(rows, 'humidity_percent'), [rows])
@@ -55,6 +53,7 @@ export function DashboardPage() {
   const critical = openIncidents.filter((i) => i.severity === 'critical').length
   const online = devices.filter((d) => d.online).length
   const lastHeartbeat = devices.reduce<number | null>((acc, d) => {
+    if (!d.lastSeen) return acc
     const t = tsMs(d.lastSeen)
     return t > 0 && (acc == null || t > acc) ? t : acc
   }, null)
@@ -82,30 +81,25 @@ export function DashboardPage() {
   const t = primary?.thresholds
   const markers = incidentMarkers(incidents, primary?.id)
 
-  const rangeOptions = [
-    {
-      value: '30m' as const,
-      label: (
-        <>
-          {device?.online ? <span className="seg-live" aria-hidden="true" /> : null}
-          30 min
-        </>
-      ),
-    },
-    { value: '6h' as const, label: '6 h' },
-    { value: '24h' as const, label: '24 h' },
-  ]
-
   return (
     <>
       <div className="page-intro">
         <div>
           <h2>Operations</h2>
-          <p>Live readings and open incidents across every cold unit.</p>
+          <p>
+            {online
+              ? 'Live readings and open incidents across every cold unit.'
+              : 'No ESP32 devices are reporting right now. Figures below are last known values from the API.'}
+          </p>
         </div>
-        <Link className="btn secondary" to="/incidents">
-          View incidents
-        </Link>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <Link className="btn secondary" to="/logs">
+            View logs
+          </Link>
+          <Link className="btn secondary" to="/incidents">
+            View incidents
+          </Link>
+        </div>
       </div>
 
       <div className="stats">
@@ -132,7 +126,11 @@ export function DashboardPage() {
         </Link>
         <div className="stat">
           <div className="stat-label">
-            <span className={`status-dot ${online === devices.length && devices.length ? 'ok' : 'warn'}`} />
+            <span
+              className={`status-dot ${
+                !devices.length ? 'warn' : online === 0 ? 'crit' : online === devices.length ? 'ok' : 'warn'
+              }`}
+            />
             Devices online
           </div>
           <div className="stat-value">
@@ -140,7 +138,15 @@ export function DashboardPage() {
             <small>/ {devices.length}</small>
           </div>
           <div className="stat-foot">
-            {lastHeartbeat ? `Last heartbeat ${fmtAgo(lastHeartbeat, clock)}` : 'No heartbeat yet'}
+            {!devices.length
+              ? 'No devices registered yet'
+              : online === 0
+                ? lastHeartbeat
+                  ? `All offline · last heartbeat ${fmtAgo(lastHeartbeat, clock)}`
+                  : 'All offline · waiting for MQTT'
+                : lastHeartbeat
+                  ? `Last heartbeat ${fmtAgo(lastHeartbeat, clock)}`
+                  : 'Reporting now'}
           </div>
         </div>
         <div className="stat">
@@ -229,18 +235,20 @@ export function DashboardPage() {
                     </div>
                   </div>
                   <span className="live-meta">
+                    {device && !device.online ? (
+                      <>
+                        <Badge tone="warn" dot>
+                          Offline
+                        </Badge>{' '}
+                      </>
+                    ) : null}
                     {latest
-                      ? `Last update ${fmtRelative(latest.timestamp)}. Readings use the same units the device publishes.`
-                      : 'Waiting for the first reading.'}
+                      ? device?.online
+                        ? `Last update ${fmtRelative(latest.timestamp)}. Showing last 30 minutes.`
+                        : `Last known reading ${fmtRelative(latest.timestamp)} · device not reporting.`
+                      : 'Waiting for the first reading.'}{' '}
+                    <Link to="/logs">Browse history on Logs</Link>
                   </span>
-                </div>
-                <div className="live-controls">
-                  <Segmented
-                    label="Time window"
-                    options={rangeOptions}
-                    value={range}
-                    onChange={setRangeChoice}
-                  />
                 </div>
               </div>
 
@@ -258,19 +266,15 @@ export function DashboardPage() {
                     { value: t.tempCriticalC, tone: 'crit', label: `Critical ${t.tempCriticalC}°C` },
                   ]}
                   markers={markers}
-                  showTable
                   emptyText={
                     <>
-                      No readings in this window.{' '}
-                      {device ? `${device.id} last reported ${fmtRelative(device.lastSeen)}.` : ''}
-                      {range !== '24h' ? (
-                        <>
-                          {' '}
-                          <button type="button" className="btn secondary sm" onClick={() => setRangeChoice('24h')}>
-                            Show 24 hours
-                          </button>
-                        </>
-                      ) : null}
+                      No readings in the last 30 minutes.{' '}
+                      {device
+                        ? device.lastSeen
+                          ? `${device.id} last reported ${fmtRelative(device.lastSeen)}.`
+                          : `${device.id} has not reported yet.`
+                        : ''}{' '}
+                      <Link to="/logs">Open logs</Link>
                     </>
                   }
                 />

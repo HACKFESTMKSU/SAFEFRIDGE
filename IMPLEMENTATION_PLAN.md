@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Based on | SRS v2.1 (12 November 2026) |
-| Goal | Working demo: ESP32 sensors → MQTT → dashboard → threshold alert (+ GSM SMS offline) |
+| Goal | Working demo: ESP32 sensors → MQTT → dashboard → threshold alert for fridges, cold rooms, and agricultural storehouses/warehouses (+ GSM SMS offline) |
 | Stack | ESP32 (PlatformIO) · Mosquitto · FastAPI · PostgreSQL · React · email · GSM SMS |
 | Hardware | ESP32, DHT11, ACS712, water sensor, SIM800L, breadboard, jumpers |
 
@@ -33,7 +33,7 @@ Phase 4  Offline buffer + GSM SMS + email
 | --- | --- |
 | 0 | Compose up; login works; roles exist |
 | 1 | Lab ESP32 data lands in the database |
-| 2 | Live + 24h charts for one fridge |
+| 2 | Live + 24h charts for one monitored unit (fridge or storehouse zone) |
 | 3 | High-temp (or leak) → incident → ack → resolve |
 | 4 | Wi-Fi down → GSM SMS; buffer + email; demo script solid |
 

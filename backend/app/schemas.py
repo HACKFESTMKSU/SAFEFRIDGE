@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 Role = Literal["admin", "operator", "technician"]
-AssetType = Literal["refrigerator", "freezer", "cold_box"]
+AssetType = Literal["refrigerator", "freezer", "cold_box", "warehouse"]
 AssetStatus = Literal["active", "inactive", "maintenance"]
 IncidentType = Literal["temperature", "humidity", "water", "current", "device_offline"]
 IncidentSeverity = Literal["warning", "critical"]
@@ -86,6 +86,47 @@ class AssetOut(BaseModel):
     thresholds: Thresholds
     device_id: str | None = Field(default=None, alias="deviceId")
     sms_recipients: list[str] = Field(default_factory=list, alias="smsRecipients")
+    product_key: str | None = Field(default=None, alias="productKey")
+    detection_confidence: float | None = Field(default=None, alias="detectionConfidence")
+    last_detection_at: datetime | None = Field(default=None, alias="lastDetectionAt")
+    detection_source: str | None = Field(default=None, alias="detectionSource")
+    agent_notes: str | None = Field(default=None, alias="agentNotes")
+
+
+class ProduceProfileOut(BaseModel):
+    model_config = CamelModel
+
+    product_key: str = Field(alias="productKey")
+    label: str
+    temp_min_c: float = Field(alias="tempMinC")
+    temp_max_c: float = Field(alias="tempMaxC")
+    temp_warning_c: float = Field(alias="tempWarningC")
+    temp_critical_c: float = Field(alias="tempCriticalC")
+    humidity_max_percent: float = Field(alias="humidityMaxPercent")
+    notes: str
+    vision_prompts: list[str] = Field(default_factory=list, alias="visionPrompts")
+
+
+class ApplyProduceRequest(BaseModel):
+    model_config = CamelModel
+
+    product_key: str = Field(alias="productKey")
+
+
+class CharacterizeOut(BaseModel):
+    model_config = CamelModel
+
+    asset: "AssetOut"
+    product_key: str | None = Field(default=None, alias="productKey")
+    confidence: float = 0.0
+    detections: list[dict] = Field(default_factory=list)
+    frames_sampled: int = Field(default=0, alias="framesSampled")
+    vision_model: str | None = Field(default=None, alias="visionModel")
+    vision_ready: bool = Field(default=False, alias="visionReady")
+    agent_source: str = Field(default="static", alias="agentSource")
+    status: str = ""
+    guidance: str = ""
+    thresholds_applied: bool = Field(default=False, alias="thresholdsApplied")
 
 
 class AssetCreate(BaseModel):

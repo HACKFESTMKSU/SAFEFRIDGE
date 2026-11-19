@@ -1,8 +1,8 @@
 # ColdGuard Backend
 
-FastAPI + SQLAlchemy backend for the ColdGuard cold-storage monitoring prototype.
-Covers SRS phases 0–3: auth/roles, MQTT telemetry ingest, asset/device registry,
-live + history APIs, threshold rule engine, and incident ack/resolve flow.
+FastAPI + SQLAlchemy backend for ColdGuard — agricultural cold rooms, storehouses,
+food hubs, and warehouses. Covers auth/roles, MQTT telemetry, assets/devices,
+threshold rules, incidents, and the produce vision agent (YOLOE-26 + Claude).
 
 ## Quick start
 
@@ -27,8 +27,7 @@ The app creates tables and seeds demo data on first start (SQLite file
 | Operator    | operator@coldguard.local  | operator123   |
 | Technician  | tech@coldguard.local      | tech123       |
 
-Seeded assets/devices/incidents/notes mirror `web/src/data/mock.ts`
-(Pharmacy Fridge A / CG-001, Vaccine Freezer B / CG-002, Lab Cold Box).
+Seeded lab asset: **Lab produce storehouse** linked to device `CG-001`.
 
 ## Configuration (`.env`)
 
@@ -36,12 +35,47 @@ See `.env.example`. Key vars:
 
 - `DATABASE_URL` — defaults to SQLite; use
   `postgresql+psycopg://coldguard:coldguard@localhost:5432/coldguard` for Postgres.
+  Render/Heroku `postgres://` URLs are normalized automatically.
+- `CORS_ORIGINS` — comma-separated production frontends (e.g. Vercel URL);
+  localhost Vite ports are always allowed
 - `MQTT_ENABLED`, `MQTT_HOST`, `MQTT_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`
 - `RULE_CONSECUTIVE_BREACHES` (default 2) — sustained-breach gate before an
   incident is created; `RULE_BREACH_WINDOW_SECONDS` (default 600)
 - `DEVICE_OFFLINE_SECONDS` (default 300) — silence before `device_offline`
-- `SMTP_*` / `NOTIFY_EMAILS` — email on new incidents; logged only if unset
+- `RESEND_API_KEY` / `RESEND_FROM` / `NOTIFY_EMAILS` — Resend email on new
+  incidents; logged only if the API key is unset
 - `JWT_SECRET`, `JWT_EXPIRE_MINUTES`
+- `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` — Claude agent for produce guidance (optional; static catalog fallback without a key)
+- `VISION_MODEL` — Ultralytics weight hint (default YOLOE-26 small seg)
+
+## Deploy (Render — Docker)
+
+Create a **Web Service** with **Runtime: Docker**, **Root Directory:** `backend`
+(builds `Dockerfile`). Health check: `/health`. Set `CORS_ORIGINS` to your
+Vercel URL and `MQTT_ENABLED=false` unless you use an external broker.
+Full steps: root [README](../README.md#deploy-vercel--render).
+
+```bash
+# Local smoke-test of the same image Render will run
+docker build -t coldguard-api .
+docker run --rm -p 8000:8000 -e MQTT_ENABLED=false coldguard-api
+```
+
+## Produce vision agent
+
+- `GET /api/assets/produce/profiles` — agri crop catalog + safe bands
+- `POST /api/assets/{id}/characterize` — multipart `file` (short video) → YOLOE-26 frames → Claude/static → apply thresholds
+- `POST /api/assets/{id}/produce` — `{ "productKey": "tomato" }` manual profile apply
+- Demo uses **video upload**; production path is ESP32-CAM into the same loop.
+- Without Ultralytics installed, **manual produce pick** still applies thresholds; vision falls back gracefully.
+- Optional vision stack (large download — prefer CPU torch):
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install -r requirements-vision.txt
+```
+
+First vision run also downloads `yoloe-26s-seg.pt` (needs network).
 
 ## MQTT
 
@@ -58,7 +92,8 @@ No Docker? Run a local broker with `pip install amqtt` then `amqtt`
 - `POST /auth/login`, `GET /auth/me`, `PATCH /auth/me`, `POST /auth/change-password`
 - `GET/POST /assets`, `PATCH /assets/{id}`, `POST /assets/{id}/link-device`,
   `DELETE /assets/{id}/link-device`, `PATCH /assets/{id}/thresholds`,
-  `GET/POST /assets/{id}/notes`
+  `GET /assets/produce/profiles`, `POST /assets/{id}/characterize`,
+  `POST /assets/{id}/produce`, `GET/POST /assets/{id}/notes`
 - `GET/POST /devices`, `PATCH /devices/{id}`
 - `GET /telemetry/{device_id}?hours=24`, `GET /telemetry/{device_id}/latest`,
   `GET /telemetry/{device_id}/stats`

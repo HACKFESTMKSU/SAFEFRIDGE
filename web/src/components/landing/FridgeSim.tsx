@@ -99,8 +99,8 @@ function Alert({
 }
 
 /**
- * "Try to spoil the vaccines": a playable ColdGuard unit. Visitors break the
- * fridge and watch the readings, the incident and the alert play out.
+ * "Try to spoil the produce": a playable ColdGuard storehouse. Visitors break
+ * the cold room and watch the readings, the incident and the alert play out.
  */
 export function FridgeSim() {
   const root = useRef<HTMLDivElement>(null)
@@ -122,9 +122,9 @@ export function FridgeSim() {
   return (
     <div className="sim" ref={root}>
       <div className="sim-main">
-        <div className="sim-controls" role="group" aria-label="Break the fridge">
+        <div className="sim-controls" role="group" aria-label="Break the storehouse">
           <Toggle
-            label="Fridge door"
+            label="Cold-room door"
             good={!s.door}
             goodText="Closed"
             badText="Open"
@@ -180,7 +180,7 @@ export function FridgeSim() {
         <div className="sim-chart">
           <LiveChart
             points={s.temps}
-            label="Fridge temperature"
+            label="Storehouse temperature"
             unit="°C"
             height={270}
             domain={[from, s.t]}
@@ -235,7 +235,7 @@ export function FridgeSim() {
           </div>
           <div className="phone-list">
             {s.alerts.length === 0 ? (
-              <p className="phone-empty">No alerts. Everything is cold.</p>
+              <p className="phone-empty">No alerts. Produce is in band.</p>
             ) : (
               s.alerts.slice(0, 4).map((a) => (
                 <Alert
@@ -250,8 +250,8 @@ export function FridgeSim() {
           </div>
         </div>
         <p className="sim-side-cap">
-          Alerts land here like they would on a pharmacist’s phone. With the Wi-Fi down, critical alerts arrive by
-          SMS instead.
+          Alerts land here like they would on a storehouse operator’s phone. With the Wi-Fi down, critical alerts
+          arrive by SMS instead.
         </p>
       </div>
     </div>

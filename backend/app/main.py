@@ -8,7 +8,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import mqtt_client, rules
-from .database import Base, SessionLocal, engine
+from .config import settings
+from .database import Base, SessionLocal, engine, ensure_schema_columns
 from .routers import api_router
 from .seed import seed
 
@@ -42,6 +43,7 @@ def _run_offline_check() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    ensure_schema_columns()
     with SessionLocal() as db:
         seed(db)
     logger.info("Database ready (seeded if empty)")
@@ -56,12 +58,7 @@ app = FastAPI(title="ColdGuard API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

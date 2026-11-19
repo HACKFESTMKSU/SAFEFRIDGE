@@ -1,6 +1,6 @@
 export type Role = 'admin' | 'operator' | 'technician'
 
-export type AssetType = 'refrigerator' | 'freezer' | 'cold_box'
+export type AssetType = 'refrigerator' | 'freezer' | 'cold_box' | 'warehouse'
 export type AssetStatus = 'active' | 'inactive' | 'maintenance'
 export type IncidentType = 'temperature' | 'humidity' | 'water' | 'current' | 'device_offline'
 export type IncidentSeverity = 'warning' | 'critical'
@@ -34,6 +34,37 @@ export interface Asset {
   thresholds: Thresholds
   deviceId: string | null
   smsRecipients: string[]
+  productKey?: string | null
+  detectionConfidence?: number | null
+  lastDetectionAt?: string | null
+  detectionSource?: string | null
+  agentNotes?: string | null
+}
+
+export interface ProduceProfile {
+  productKey: string
+  label: string
+  tempMinC: number
+  tempMaxC: number
+  tempWarningC: number
+  tempCriticalC: number
+  humidityMaxPercent: number
+  notes: string
+  visionPrompts: string[]
+}
+
+export interface CharacterizeResult {
+  asset: Asset
+  productKey: string | null
+  confidence: number
+  detections: Array<{ product_key?: string; productKey?: string; confidence: number; hits?: number }>
+  framesSampled: number
+  visionModel: string | null
+  visionReady: boolean
+  agentSource: string
+  status: string
+  guidance: string
+  thresholdsApplied: boolean
 }
 
 export interface Device {
@@ -41,7 +72,8 @@ export interface Device {
   name: string
   firmwareVersion: string
   online: boolean
-  lastSeen: string
+  /** Null until the device has published at least one MQTT heartbeat. */
+  lastSeen: string | null
   assetId: string | null
 }
 
@@ -53,6 +85,10 @@ export interface TelemetryReading {
   water_level: number | null
   water_wet: boolean
   quality?: string
+  /** Optional lab extras (BMP180 / MQ-3 demo fields). */
+  pressure_hpa?: number | null
+  bmp_temperature_c?: number | null
+  mq3_raw?: number | null
 }
 
 export interface Incident {

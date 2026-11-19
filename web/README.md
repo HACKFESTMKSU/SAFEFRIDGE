@@ -1,16 +1,23 @@
 # ColdGuard Web (MVP)
 
-React + Vite frontend for the ColdGuard cold-storage monitoring prototype.
+React + Vite frontend for ColdGuard — monitoring fridges, cold rooms, and agricultural storehouses / warehouses.
 
 ## Run
 
 ```bash
 cd web
+cp .env.example .env   # optional; defaults to http://localhost:8000/api
 npm install
 npm run dev
 ```
 
 Open the URL Vite prints (usually `http://localhost:5173`).
+
+## Deploy (Vercel)
+
+Root Directory: `web`. Set `VITE_API_URL` to your Render API URL including `/api`
+(e.g. `https://coldguard-api.onrender.com/api`). SPA routing is handled by
+`vercel.json`. Full steps: root [README](../README.md#deploy-vercel--render).
 
 ## Demo logins
 

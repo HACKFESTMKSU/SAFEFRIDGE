@@ -51,7 +51,7 @@ export function AssetsPage() {
       <div className="page-intro">
         <div>
           <h2>Assets</h2>
-          <p>Refrigerators, freezers, and cold boxes under monitoring.</p>
+          <p>Fridges, freezers, cold boxes, and storehouse / warehouse zones under monitoring.</p>
         </div>
         {admin ? (
           <button className="btn" onClick={() => setShowForm((v) => !v)}>
@@ -75,6 +75,7 @@ export function AssetsPage() {
                   <option value="refrigerator">Refrigerator</option>
                   <option value="freezer">Freezer</option>
                   <option value="cold_box">Cold box</option>
+                  <option value="warehouse">Storehouse / warehouse</option>
                 </select>
               </div>
             </div>

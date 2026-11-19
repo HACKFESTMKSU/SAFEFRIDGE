@@ -31,7 +31,8 @@ export function fmtAmps(v: number | null | undefined) {
   return `${v.toFixed(2)} A`
 }
 
-export function fmtPressure(v: number) {
+export function fmtPressure(v: number | null | undefined) {
+  if (v == null || !Number.isFinite(v)) return '—'
   return `${Math.round(v)} hPa`
 }
 
@@ -43,6 +44,14 @@ export function fmtWhen(iso: string) {
 export function fmtRelative(iso: string) {
   const d = parseTs(iso)
   return Number.isNaN(d.getTime()) ? iso : formatDistanceToNow(d, { addSuffix: true })
+}
+
+/** Last-seen for devices: never-seen / epoch placeholders → "Never". */
+export function fmtLastSeen(iso: string | null | undefined) {
+  if (!iso) return 'Never'
+  const ms = tsMs(iso)
+  if (!Number.isFinite(ms) || ms <= 0) return 'Never'
+  return fmtRelative(iso)
 }
 
 /** Compact "12s ago" style used by live indicators. */
@@ -62,6 +71,7 @@ export function assetTypeLabel(t: AssetType) {
     refrigerator: 'Refrigerator',
     freezer: 'Freezer',
     cold_box: 'Cold box',
+    warehouse: 'Storehouse / warehouse',
   }
   return map[t]
 }

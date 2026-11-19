@@ -1230,6 +1230,16 @@ table.data a:hover {
   animation: none;
 }
 
+/* API reachable but no ESP32 heartbeats — not "Live". */
+.live-pill.idle .live-dot,
+.live-pill.idle .live-dot::after {
+  background: var(--warn);
+}
+
+.live-pill.idle .live-dot::after {
+  animation: none;
+}
+
 .sb-backdrop {
   display: none;
 }

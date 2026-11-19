@@ -1,0 +1,5 @@
+# Optional heavy vision stack (YOLOE-26). Install after requirements.txt.
+# Prefer CPU torch first to avoid multi‑GB CUDA wheels on hackathon laptops:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-vision.txt
+ultralytics>=8.3.0

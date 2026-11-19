@@ -4,8 +4,8 @@ function noise(n: number) {
   return x - Math.floor(x)
 }
 
-/** A plausible pharmacy-fridge reading for a moment in time (hero sample feed). */
+/** A plausible produce-storehouse reading for a moment in time (hero sample feed). Tomato band ~10–15°C. */
 export function sampleFridge(t: number) {
   const s = t / 1000
-  return 4.2 + Math.sin(s / 14) * 0.55 + Math.sin(s / 3.7) * 0.12 + (noise(Math.floor(s / 2)) - 0.5) * 0.12
+  return 12.1 + Math.sin(s / 14) * 0.55 + Math.sin(s / 3.7) * 0.12 + (noise(Math.floor(s / 2)) - 0.5) * 0.12
 }

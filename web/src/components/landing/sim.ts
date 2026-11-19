@@ -11,7 +11,9 @@ export const SIM_SPEED = Math.round(60_000 / SIM_TICK_MS)
 const MIN = 60_000
 const KEEP = 120
 
-export const LIMITS = { min: 2, max: 8, warn: 7, crit: 10, ampsMin: 0.3 }
+/** Tomato / aggregation cold-room band (matches produce catalog). */
+export const LIMITS = { min: 10, max: 15, warn: 16, crit: 18, ampsMin: 0.3 }
+export const UNIT_NAME = 'Produce Storehouse A'
 
 type Tone = 'info' | 'warn' | 'crit' | 'ok'
 
@@ -76,7 +78,7 @@ function noise(n: number) {
 }
 
 function settle(minute: number) {
-  return 4.2 + Math.sin(minute / 8) * 0.35
+  return 12.1 + Math.sin(minute / 8) * 0.35
 }
 
 function compressor(minute: number) {
@@ -103,7 +105,7 @@ export function initialSim(): SimState {
     t,
     temp,
     amps: compressor(minute),
-    rh: 56,
+    rh: 88,
     door: false,
     power: true,
     wifi: true,
@@ -132,11 +134,11 @@ function tick(s: SimState): SimState {
   const t = s.t + MIN
   const minute = Math.round(t / MIN)
   // Thermal model: ease toward a target set by the door and the power.
-  const target = !s.power ? 24 : s.door ? 12.5 : settle(minute)
+  const target = !s.power ? 28 : s.door ? 22 : settle(minute)
   const rate = !s.power ? (s.door ? 0.07 : 0.016) : s.door ? 0.16 : 0.12
   const temp = s.temp + (target - s.temp) * rate + (noise(minute) - 0.5) * 0.1
-  const amps = !s.power ? 0 : s.door || temp > 6 ? 1.85 + (noise(minute + 5) - 0.5) * 0.08 : compressor(minute)
-  const rh = s.rh + ((s.door ? 74 : 56) - s.rh) * 0.2 + (noise(minute + 9) - 0.5) * 0.4
+  const amps = !s.power ? 0 : s.door || temp > LIMITS.max ? 1.85 + (noise(minute + 5) - 0.5) * 0.08 : compressor(minute)
+  const rh = s.rh + ((s.door ? 92 : 88) - s.rh) * 0.2 + (noise(minute + 9) - 0.5) * 0.4
 
   let seq = s.seq
   const events = [...s.events]
@@ -189,8 +191,10 @@ function tick(s: SimState): SimState {
         {
           channel: 'app',
           tone: lvl,
-          title: `Pharmacy Fridge A at ${temp.toFixed(1)}°C`,
-          body: critical ? 'Critical. Check the door and the power now.' : 'Above 7°C and rising. Check the door seal.',
+          title: `${UNIT_NAME} at ${temp.toFixed(1)}°C`,
+          body: critical
+            ? 'Critical for stored tomatoes. Check the door and the power now.'
+            : `Above ${LIMITS.warn}°C and rising. Check the door seal.`,
         },
       )
       log(`Second reading confirmed it. Incident opened, alert sent to app and email`, lvl, `${temp.toFixed(1)}°C`)
@@ -217,7 +221,7 @@ function tick(s: SimState): SimState {
         {
           channel: 'app',
           tone: 'warn',
-          title: 'Pharmacy Fridge A went quiet',
+          title: `${UNIT_NAME} went quiet`,
           body: 'No readings for 5 minutes. The unit is still watching and will SMS if it gets critical.',
         },
       )
@@ -232,7 +236,7 @@ function tick(s: SimState): SimState {
         channel: 'sms',
         tone: 'crit',
         title: 'SMS from the unit',
-        body: `ColdGuard: Pharmacy Fridge A is at ${temp.toFixed(1)}°C, above its 8°C limit. Check the door and power.`,
+        body: `ColdGuard: ${UNIT_NAME} is at ${temp.toFixed(1)}°C, above its ${LIMITS.max}°C tomato limit. Check the door and power.`,
         incidentId: null,
       })
       log('Wi-Fi is down, so the unit sent an SMS over GSM', 'crit', 'SMS sent')

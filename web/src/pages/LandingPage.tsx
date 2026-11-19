@@ -16,57 +16,57 @@ const FEED_POINTS = 45
 const steps = [
   {
     title: 'Sense',
-    text: 'An ESP32 in each unit reads temperature, humidity, pressure, compressor current and a leak sensor every minute.',
+    text: 'An ESP32 in each cold room or storehouse reads temperature, humidity, compressor current and a leak sensor on a short interval.',
   },
   {
-    title: 'Send',
-    text: 'Readings travel over Wi-Fi to the ColdGuard server. When Wi-Fi drops, a SIM800L module still gets critical alerts out by SMS.',
+    title: 'See',
+    text: 'Vision characterizes the crop in the room (demo: short video upload; production: facility camera). Different produce needs different safe bands.',
   },
   {
     title: 'Decide',
-    text: 'Every reading is checked against the unit’s safe range. Two breaches in a row open an incident, so one noisy reading never wakes anyone.',
+    text: 'Claude (or a produce catalog) applies the right thresholds. Every reading is checked against that crop’s band — two breaches open an incident.',
   },
   {
     title: 'Act',
-    text: 'Staff get the alert by app, email or SMS, acknowledge it, fix the cause and close it with a note for the audit trail.',
+    text: 'Staff get the alert by app, email or SMS, acknowledge it, fix the cause and close it with a note. GSM SMS still works when Wi-Fi is down.',
   },
 ]
 
 const units = [
   {
     code: 'CG-001',
-    name: 'Dispensary unit',
-    keeps: 'Medicine cabinets and pharmacy cold shelves',
-    min: 2,
-    max: 8,
-    example: 4.2,
+    name: 'Tomato cold room',
+    keeps: 'Aggregation hubs and market cool stores for tomatoes',
+    min: 10,
+    max: 15,
+    example: 12.1,
   },
   {
     code: 'CG-002',
-    name: 'Vaccine cold room',
-    keeps: 'Walk-in cold rooms and vaccine stores',
-    min: -25,
-    max: -15,
-    example: -19.4,
+    name: 'Mango storehouse',
+    keeps: 'Post-harvest cool stores for mango and similar fruit',
+    min: 10,
+    max: 13,
+    example: 11.4,
   },
   {
     code: 'CG-003',
-    name: 'Fresh produce store',
-    keeps: 'Markets, food hubs and aggregation centres',
-    min: 2,
-    max: 8,
-    example: 6.1,
+    name: 'Potato warehouse',
+    keeps: 'Farm and warehouse zones for roots and tubers',
+    min: 4,
+    max: 10,
+    example: 7.2,
   },
 ]
 
 const pledges = [
   <>
-    We <b>acknowledge</b> that a third of Kenya’s harvest is lost after it leaves the farm, much of it to
+    We <b>acknowledge</b> that a large share of Kenya’s harvest is lost after it leaves the farm, much of it to
     cold storage that failed in silence.
   </>,
   <>
-    We <b>believe</b> vaccines, insulin and medicine deserve a guaranteed 2 to 8°C, every hour of every day,
-    for our patients and for future generations.
+    We <b>believe</b> mangoes, potatoes, tomatoes and leafy greens deserve crop-specific safe bands — not one
+    generic threshold for every storehouse.
   </>,
   <>
     We <b>recognise</b> that power cuts and dead zones are the reality, so monitoring must keep working
@@ -77,8 +77,7 @@ const pledges = [
     app, email or GSM SMS.
   </>,
   <>
-    We are <b>proud</b> to build for the hospitals, pharmacies, food hubs and markets that feed and heal
-    Kenya, and Africa.
+    We are <b>proud</b> to build for the farms, markets, food hubs and warehouses that feed Kenya, and Africa.
   </>,
 ]
 
@@ -91,16 +90,16 @@ const roadmap = [
     done: true,
   },
   {
-    img: '/images/pharmacy_store.jpg',
-    place: 'Lamu',
-    title: 'Chemist and dispensary monitoring pilot',
+    img: '/images/produce_market.jpg',
+    place: 'Kisumu',
+    title: 'Food hub and produce market monitoring pilot',
     date: 'Next',
     done: false,
   },
   {
-    img: '/images/produce_market.jpg',
-    place: 'Kisumu',
-    title: 'Fresh produce food hub deployment',
+    img: '/images/cold_room.jpg',
+    place: 'Nakuru',
+    title: 'Warehouse and farm storehouse deployment',
     date: 'Planned',
     done: false,
   },
@@ -190,8 +189,9 @@ export function LandingPage() {
                 </span>
               </h1>
               <p className="lp-lede">
-                ColdGuard watches the fridges, freezers and cold rooms that keep medicine, vaccines and fresh
-                food safe, and raises the alarm the moment one starts to warm.
+                ColdGuard watches cold rooms, storehouses, food hubs, and warehouses that hold perishable
+                produce — sees which crop is stored, adapts the safe band, and raises the alarm the moment
+                conditions drift.
               </p>
               <div className="lp-cta-row">
                 <Link className="btn lg" to={demoTo}>
@@ -215,23 +215,23 @@ export function LandingPage() {
                   <CountUp value={latest.v} decimals={1} fromZeroOnView duration={1400} />
                   °C
                 </div>
-                <p className="lp-temp-cap">Pharmacy fridge, right now</p>
+                <p className="lp-temp-cap">Tomato storehouse, right now</p>
                 <div className="lp-live-chart">
                   <LiveChart
                     points={feed}
-                    label="Sample pharmacy fridge temperature"
+                    label="Sample tomato storehouse temperature"
                     unit="°C"
                     compact
                     live
                     height={92}
                     domain={feedDomain}
-                    band={{ min: 2, max: 8 }}
+                    band={{ min: 10, max: 15 }}
                     gapMs={60_000}
                   />
                 </div>
                 <p className="lp-live-status">
                   <span className="status-dot ok" aria-hidden="true" />
-                  In the safe range, 2 to 8°C
+                  In the tomato band, 10 to 15°C
                 </p>
                 <Link className="lp-gradient-btn" to={demoTo}>
                   See every unit live
@@ -252,7 +252,8 @@ export function LandingPage() {
               <span>A SIM800L module in each unit sends critical alerts over GSM.</span>
             </div>
             <p className="lp-sms">
-              ColdGuard: Pharmacy Fridge A is at 10.4°C, above its 8°C limit. Check the door and power.
+              ColdGuard: Produce Storehouse A is at 17.4°C, above its 15°C tomato limit. Check the door and
+              power.
             </p>
             <a className="btn sm dark" href="#how">
               How alerts work
@@ -264,10 +265,10 @@ export function LandingPage() {
         <section id="how" className="lp-wrap lp-frame">
           <div className="lp-section">
             <div className="lp-head" data-aos="fade-up">
-              <h2 className="lp-h2">Sense. Send. Decide. Act.</h2>
+              <h2 className="lp-h2">Sense. See. Decide. Act.</h2>
               <p>
-                Every unit runs the same loop around the clock. When the Wi-Fi drops, the alert still gets out
-                by SMS.
+                Every storehouse runs the same loop around the clock — sensors plus crop-aware thresholds.
+                When the Wi-Fi drops, the alert still gets out by SMS.
               </p>
             </div>
             <div className="lp-pipe" data-aos="fade-up">
@@ -298,10 +299,10 @@ export function LandingPage() {
         <section id="try" className="lp-wrap lp-frame">
           <div className="lp-section">
             <div className="lp-head" data-aos="fade-up">
-              <h2 className="lp-h2">Try to spoil the vaccines</h2>
+              <h2 className="lp-h2">Try to spoil the produce</h2>
               <p>
-                This is a simulated ColdGuard unit running at 150 times real speed. Open the door, cut the power
-                or take the Wi-Fi down, then handle the alert like the pharmacist on duty would.
+                This is a simulated tomato storehouse running at 150 times real speed. Open the door, cut the
+                power or take the Wi-Fi down, then handle the alert like the operator on duty would.
               </p>
             </div>
             <div data-aos="fade-up">
@@ -314,10 +315,10 @@ export function LandingPage() {
         <section id="units" className="lp-wrap lp-frame">
           <div className="lp-section">
             <div className="lp-head" data-aos="fade-up">
-              <h2 className="lp-h2">One kit, three kinds of cold</h2>
+              <h2 className="lp-h2">One kit, many crops</h2>
               <p>
-                The same sensor kit adapts to each store. Set the safe range once and ColdGuard checks every
-                reading against it.
+                The same sensor kit watches every zone. Vision (or a manual pick) sets the crop profile;
+                ColdGuard checks every reading against that band.
               </p>
             </div>
             <div className="lp-table-wrap" data-aos="fade-up">
@@ -362,11 +363,11 @@ export function LandingPage() {
         <section id="about" className="lp-wrap lp-frame">
           <div className="lp-manifesto">
             <div className="lp-manifesto-photo" data-aos="fade-right">
-              <img src="/images/ghana_vaccine.jpg" alt="Health worker preparing vaccines" loading="lazy" />
+              <img src="/images/produce_market.jpg" alt="Fresh produce at a market storehouse" loading="lazy" />
             </div>
             <div className="lp-manifesto-card" data-aos="fade-left">
               <h2>ColdGuard</h2>
-              <p className="lp-manifesto-sub">Sisi ni walezi. We are the guardians.</p>
+              <p className="lp-manifesto-sub">Sisi ni walezi. We guard the harvest.</p>
               {pledges.map((p, i) => (
                 <p key={i} className="pledge">
                   {p}
@@ -391,7 +392,7 @@ export function LandingPage() {
               Build and roadmap
             </h2>
             <p className="lp-dark-sub" data-aos="fade-up">
-              Built at HACKFEST MKSU. Pilots come next, starting with chemists and food hubs.
+              Built at HACKFEST MKSU. Pilots come next, starting with food hubs and farm storehouses.
             </p>
             <div className="lp-road">
               {roadmap.map((r, i) => (
@@ -411,19 +412,36 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Video */}
+        {/* Why it matters */}
         <section className="lp-wrap lp-frame">
           <div className="lp-section">
             <div className="lp-head" data-aos="fade-up">
-              <h2 className="lp-h2">Why the cold chain matters</h2>
-              <p>A short CDC film on how vaccines stay cold from the factory to the clinic.</p>
+              <h2 className="lp-h2">Why the agri cold chain matters</h2>
+              <p>
+                Post-harvest losses drain farms and markets. Quiet failures in storehouses and cold rooms turn
+                good harvests into waste — unless someone is watching every degree.
+              </p>
             </div>
-            <div className="lp-video-frame" data-aos="zoom-in">
-              <video controls preload="metadata" poster="/images/ethiopia_vaccine.jpg">
-                <source src="/videos/vaccine_logistics.webm" type="video/webm" />
-              </video>
+            <div className="lp-table-wrap" data-aos="fade-up" style={{ display: 'grid', gap: 16, gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+              <figure style={{ margin: 0 }}>
+                <img
+                  src="/images/cold_room.jpg"
+                  alt="Cold room used for produce storage"
+                  loading="lazy"
+                  style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 8 }}
+                />
+                <figcaption className="lp-credit">Cold rooms and cool stores for perishable crops</figcaption>
+              </figure>
+              <figure style={{ margin: 0 }}>
+                <img
+                  src="/images/produce_market.jpg"
+                  alt="Produce market and aggregation point"
+                  loading="lazy"
+                  style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 8 }}
+                />
+                <figcaption className="lp-credit">Markets and food hubs where stock waits overnight</figcaption>
+              </figure>
             </div>
-            <p className="lp-credit">Video: CDC, COVID-19 vaccine logistics. Wikimedia Commons, public domain.</p>
           </div>
         </section>
 

@@ -11,6 +11,7 @@ import { AssetDetailPage } from './pages/AssetDetailPage'
 import { IncidentsPage } from './pages/IncidentsPage'
 import { IncidentDetailPage } from './pages/IncidentDetailPage'
 import { DevicesPage } from './pages/DevicesPage'
+import { LogsPage } from './pages/LogsPage'
 import { UsersPage } from './pages/UsersPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ProfilePage } from './pages/ProfilePage'
@@ -27,6 +28,7 @@ function AppRoutes() {
           <Route path="assets/:id" element={<AssetDetailPage />} />
           <Route path="incidents" element={<IncidentsPage />} />
           <Route path="incidents/:id" element={<IncidentDetailPage />} />
+          <Route path="logs" element={<LogsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route element={<RequireAuth roles={['admin']} />}>
             <Route path="devices" element={<DevicesPage />} />

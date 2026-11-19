@@ -16,7 +16,7 @@ export const RANGE_MS: Record<Range, number> = {
 export function toSeries(rows: TelemetryReading[], key: string): ChartPoint[] {
   const out: ChartPoint[] = []
   for (const r of rows) {
-    const v = (r as Record<string, unknown>)[key]
+    const v = (r as unknown as Record<string, unknown>)[key]
     if (typeof v === 'number' && Number.isFinite(v)) {
       out.push({ t: tsMs(r.timestamp), v })
     }

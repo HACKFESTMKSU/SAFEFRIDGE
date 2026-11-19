@@ -1,13 +1,13 @@
 # Software Requirements Specification
 
-**ColdGuard** — Cold-Storage Monitoring Prototype
+**ColdGuard** — Cold Room, Warehouse & Storehouse Monitoring Prototype
 
 | Field | Value |
 | --- | --- |
-| Version | 2.1 |
-| Date | 12 November 2026 |
+| Version | 2.3 |
+| Date | 19 November 2026 |
 | Status | Prototype / hackathon scope |
-| Based on | Available lab hardware (ESP32 + sensors + GSM) |
+| Based on | Available lab hardware (ESP32 + sensors + GSM); vision agent via video upload |
 
 ---
 
@@ -15,7 +15,11 @@
 
 ### 1.1 Purpose
 
-ColdGuard is a prototype that monitors a refrigerator or small cold-storage unit using an ESP32 and common sensors, shows live readings on a web dashboard, and alerts when conditions look unsafe.
+ColdGuard is a prototype that monitors **cold rooms, agricultural storehouses, food hubs, and warehouses** holding perishable produce, using an ESP32 and common sensors, shows live readings on a web dashboard, and alerts when conditions look unsafe (temperature, humidity, leaks).
+
+**Current focus:** post-harvest and agri cold chain (farms, markets, food hubs, produce warehouses). Pharmaceuticals / vaccines are deferred.
+
+A **vision + LLM agent** can characterize which crop is stored (demo: short video upload; future: ESP32-CAM) and adapt the same sensor stream’s safe thresholds to that produce.
 
 This document defines what the prototype must do. It is intentionally smaller than a commercial product SRS.
 
@@ -28,6 +32,7 @@ This document defines what the prototype must do. It is intentionally smaller th
 - Web dashboard: live status, short history, simple alerts
 - Three user roles: Admin, Operator, Technician
 - Threshold-based alerts (temperature, humidity, water leak, abnormal current)
+- Produce characterization from uploaded video (YOLOE-26) + Claude agent to apply produce profiles
 - Basic incident acknowledge / resolve flow
 - In-app + email notifications
 - GSM module SMS for critical alerts when Wi-Fi/MQTT is unavailable
@@ -36,6 +41,8 @@ This document defines what the prototype must do. It is intentionally smaller th
 
 - Multi-tenant / multi-organization SaaS
 - Door sensors, dedicated voltage sensing, battery/UPS backup, OTA fleet management
+- Pharma / vaccine cold-chain profiles (deferred)
+- ESP32-CAM live stream (same agent API later; demo uses video upload)
 - Full AI/ML forecasting and compliance/audit exports
 - WhatsApp, webhooks, billing, custom roles
 - Production scale (thousands of devices)
@@ -45,25 +52,27 @@ This document defines what the prototype must do. It is intentionally smaller th
 | Role | Who | Can do |
 | --- | --- | --- |
 | **Admin** | System owner | Manage users, assets, devices, thresholds, view everything |
-| **Operator** | Facility staff | View assigned assets, receive alerts, acknowledge and resolve incidents |
+| **Operator** | Facility staff (warehouse, storehouse, food hub) | View assigned assets, characterize produce, receive alerts, acknowledge and resolve incidents |
 | **Technician** | Maintenance helper | View asset history and diagnostics; add maintenance notes |
 
 ### 1.4 Definitions
 
 | Term | Meaning |
 | --- | --- |
-| Asset | One fridge / freezer / cold box being monitored |
+| Asset | One fridge / freezer / cold box / storehouse or warehouse zone being monitored |
 | Device | The ESP32 unit attached to an asset |
 | Telemetry | Timestamped sensor readings |
 | Excursion | Temperature (or other metric) outside configured limits |
 | Incident | An alert that needs acknowledgement and resolution |
+
+**Target facilities:** farms, markets, and food hubs (storehouses / aggregation); warehouses and cold rooms for perishable agricultural goods.
 
 ---
 
 ## 2. Product overview
 
 ```text
-Fridge / cold unit
+Fridge / cold room / storehouse / warehouse zone
         |
         v
  ESP32 + sensors
@@ -77,7 +86,7 @@ Fridge / cold unit
  Web dashboard + email alerts
 ```
 
-**Prototype story:** staff see fridge climate, compressor current, and water leaks in one place; get notified when temperature drifts or a leak is detected — including SMS via GSM if Wi-Fi is down.
+**Prototype story:** staff see climate, water leaks, and (where fitted) compressor current for a fridge, cold room, or produce storehouse in one place; get notified when temperature or humidity drifts or a leak is detected — including SMS via GSM if Wi-Fi is down.
 
 ---
 
@@ -167,6 +176,9 @@ No multi-tenant isolation in this prototype — single organization.
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | FR-18 | Admin configures warning/critical temperature thresholds and optional humidity / water / current rules. | M |
+| FR-18a | Operator/Admin can upload a short video of storehouse stock; vision (YOLOE-26) characterizes produce and Claude (or static fallback) applies a catalog produce profile to asset thresholds. | S |
+| FR-18b | Operator/Admin can manually select a produce profile when vision is unavailable or wrong. | S |
+| FR-18c | Dashboard shows active crop, agent status vs live sensors, and notes that production uses facility camera (ESP32-CAM). | S |
 | FR-19 | Sustained threshold breach creates an incident and notifies Operators (in-app + email). | M |
 | FR-20 | Operator can acknowledge then resolve an incident with a short note. | M |
 | FR-21 | Simple recommended actions (e.g. check door/seal, inspect for leak, check power/compressor). | S |
@@ -213,7 +225,8 @@ Commercial SLAs (99.5% uptime, 10k devices, etc.) are out of scope.
 | Entity | Purpose |
 | --- | --- |
 | User | id, email, name, role, password hash |
-| Asset | id, name, type, location, thresholds, status |
+| Asset | id, name, type, location, thresholds, status, product_key, detection fields, agent_notes |
+| ProduceProfile | catalog of agri crops → safe temp/humidity bands (seeded) |
 | Device | id, asset_id, firmware, last_seen, online |
 | Telemetry | device_id, timestamp, metrics JSON or columns, quality |
 | Incident | id, asset_id, type, severity, status, timestamps, notes |
@@ -279,4 +292,4 @@ coldguard/device/{device_id}/status
 
 ## 11. Future (after prototype)
 
-Door sensor, power-loss detection, battery backup, multi-site tenants, AI anomaly detection, PDF compliance reports, OTA updates, cloud SMS providers as secondary path.
+ESP32-CAM (or equivalent) continuous/periodic frames into the same characterize → agent → thresholds loop; door sensor; power-loss detection; battery backup; multi-site tenants; pharma/vaccine profiles; PDF compliance reports; OTA updates; cloud SMS providers as secondary path.

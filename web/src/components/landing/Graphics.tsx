@@ -90,7 +90,7 @@ function Phone() {
 }
 
 const GLYPHS = [Chip, Server, Shield, Phone]
-const CAPTIONS = ['ESP32 + sensors', 'ColdGuard server', 'Rules engine', 'Phone + dashboard']
+const CAPTIONS = ['ESP32 + sensors', 'Vision + agent', 'Crop thresholds', 'Phone + dashboard']
 
 export function Pipeline({ animated = true, active = null }: { animated?: boolean; active?: number | null }) {
   const main = `M${NODES[0]},${MID} H${NODES[3]}`

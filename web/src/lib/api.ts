@@ -71,3 +71,31 @@ export async function api<T>(path: string, options: ApiOptions = {}): Promise<T>
   if (res.status === 204) return undefined as T
   return (await res.json()) as T
 }
+
+/** Multipart upload (video characterize). Do not set Content-Type — browser sets boundary. */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const headers: Record<string, string> = {}
+  const token = getToken()
+  if (token) headers.Authorization = `Bearer ${token}`
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: 'POST',
+    headers,
+    body: form,
+  })
+
+  if (res.status === 401) setToken(null)
+
+  if (!res.ok) {
+    let message = `Request failed (${res.status})`
+    try {
+      const data = (await res.json()) as { detail?: unknown }
+      if (data?.detail !== undefined) message = formatDetail(data.detail)
+    } catch {
+      // non-JSON
+    }
+    throw new ApiError(res.status, message)
+  }
+
+  return (await res.json()) as T
+}
