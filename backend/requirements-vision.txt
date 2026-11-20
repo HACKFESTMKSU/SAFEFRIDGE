@@ -1,5 +1,6 @@
-# Optional heavy vision stack (YOLOE-26). Install after requirements.txt.
-# Prefer CPU torch first to avoid multi‑GB CUDA wheels on hackathon laptops:
-#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+# Optional heavy vision stack (YOLOv8 / YOLOE). Install after requirements.txt.
+# Prefer matching CPU torch + torchvision first (avoids torchvision::nms errors):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 #   pip install -r requirements-vision.txt
+#   pip install --force-reinstall torchvision --index-url https://download.pytorch.org/whl/cpu
 ultralytics>=8.3.0

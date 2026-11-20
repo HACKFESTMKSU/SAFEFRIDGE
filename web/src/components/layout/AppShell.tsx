@@ -15,6 +15,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
+import { BrandLogo } from '../BrandLogo'
 import { useAuth } from '../../context/AuthContext'
 import { useData } from '../../context/DataContext'
 import { useNow } from '../../hooks/motion'
@@ -96,6 +97,24 @@ export function AppShell() {
     return () => document.removeEventListener('keydown', onKey)
   }, [toggleSidebar])
 
+  // Close the drawer when the route changes or the viewport leaves mobile.
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!mobile) setDrawerOpen(false)
+  }, [mobile])
+
+  useEffect(() => {
+    if (!drawerOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [drawerOpen])
+
   if (!user) return null
 
   const openCount = incidents.filter((i) => i.status !== 'resolved').length
@@ -151,9 +170,14 @@ export function AppShell() {
     <div className={`app ${rail ? 'is-collapsed' : ''} ${drawerOpen ? 'drawer-open' : ''}`}>
       <aside className="sidebar" aria-label="Main navigation" id="app-sidebar">
         <div className="sb-top">
-          <Link to="/" className="brand-badge sb-brand" aria-label="ColdGuard dashboard" onClick={closeDrawer}>
-            {rail ? 'CG' : 'COLDGUARD'}
-          </Link>
+          <BrandLogo
+            to="/"
+            markOnly={rail}
+            size="sm"
+            className="sb-brand"
+            aria-label="ColdGuard dashboard"
+            onClick={closeDrawer}
+          />
           {mobile ? (
             <button type="button" className="sb-icon-btn" aria-label="Close menu" onClick={closeDrawer}>
               <X size={18} />

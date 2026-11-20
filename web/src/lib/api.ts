@@ -1,6 +1,12 @@
-const BASE_URL =
-  (import.meta.env.VITE_API_URL as string | undefined) ??
-  'http://localhost:8000/api'
+/** Normalize so both `https://host` and `https://host/api` work (backend mounts under /api). */
+function resolveApiBase(raw: string | undefined): string {
+  const fallback = 'http://localhost:8000/api'
+  const value = (raw ?? fallback).trim().replace(/\/+$/, '')
+  if (!value) return fallback
+  return value.endsWith('/api') ? value : `${value}/api`
+}
+
+const BASE_URL = resolveApiBase(import.meta.env.VITE_API_URL as string | undefined)
 
 const TOKEN_KEY = 'coldguard.token'
 
