@@ -81,7 +81,9 @@ def _call_claude(
     telemetry: dict[str, Any] | None,
     asset_name: str,
 ) -> dict[str, Any] | None:
-    if not settings.ANTHROPIC_API_KEY:
+    api_key = (settings.ANTHROPIC_API_KEY or "").strip()
+    # Placeholder keys still look set and would block the boxed preview on a failed call.
+    if not api_key or "YOUR_" in api_key:
         return None
     try:
         import anthropic
@@ -119,7 +121,9 @@ def _call_claude(
         '"status":"short operator sentence", "guidance":"one short action tip"}'
     )
     try:
-        client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        # Boxes are already drawn by the time we get here. Don't let a slow
+        # or retrying call hold the annotated JPEG (SDK default timeout is 10 min).
+        client = anthropic.Anthropic(api_key=api_key, timeout=8.0, max_retries=0)
         msg = client.messages.create(
             model=settings.ANTHROPIC_MODEL,
             max_tokens=400,
