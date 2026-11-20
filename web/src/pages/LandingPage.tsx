@@ -81,30 +81,6 @@ const pledges = [
   </>,
 ]
 
-const roadmap = [
-  {
-    img: '/images/village_reach.jpg',
-    place: 'Nairobi',
-    title: 'HACKFEST MKSU build, first working prototype',
-    date: 'Nov 2026',
-    done: true,
-  },
-  {
-    img: '/images/produce_market.jpg',
-    place: 'Kisumu',
-    title: 'Food hub and produce market monitoring pilot',
-    date: 'Next',
-    done: false,
-  },
-  {
-    img: '/images/cold_room.jpg',
-    place: 'Nakuru',
-    title: 'Warehouse and farm storehouse deployment',
-    date: 'Planned',
-    done: false,
-  },
-]
-
 function useSampleFeed() {
   const [points, setPoints] = useState<ChartPoint[]>(() => {
     const now = Date.now()
@@ -151,7 +127,6 @@ export function LandingPage() {
             <a href="#how">How it works</a>
             <a href="#try">Try it</a>
             <a href="#units">Units</a>
-            <a href="#roadmap">Roadmap</a>
           </nav>
           <div className="lp-nav-cta">
             {user ? (
@@ -274,15 +249,12 @@ export function LandingPage() {
             <div className="lp-pipe" data-aos="fade-up">
               <Pipeline animated={animated} active={step} />
             </div>
-            <ol className="lp-steps" onMouseLeave={() => setStep(null)}>
+            <ol className="lp-steps">
               {steps.map((s, i) => (
                 <li
                   key={s.title}
-                  data-aos="fade-up"
-                  data-aos-delay={i * 90}
                   tabIndex={0}
                   className={step === i ? 'is-active' : ''}
-                  onMouseEnter={() => setStep(i)}
                   onFocus={() => setStep(i)}
                   onBlur={() => setStep(null)}
                 >
@@ -385,33 +357,6 @@ export function LandingPage() {
           </div>
         </section>
 
-        {/* Roadmap */}
-        <section id="roadmap" className="lp-dark">
-          <div className="lp-wrap">
-            <h2 className="lp-h2" data-aos="fade-up">
-              Build and roadmap
-            </h2>
-            <p className="lp-dark-sub" data-aos="fade-up">
-              Built at HACKFEST MKSU. Pilots come next, starting with food hubs and farm storehouses.
-            </p>
-            <div className="lp-road">
-              {roadmap.map((r, i) => (
-                <article key={r.place} className="lp-road-card" data-aos="fade-up" data-aos-delay={i * 110}>
-                  <img src={r.img} alt="" loading="lazy" />
-                  <div className="lp-road-body">
-                    <div className="lp-road-place">{r.place}</div>
-                    <h3>{r.title}</h3>
-                    <div className="lp-road-meta">
-                      <span className={`lp-road-state ${r.done ? 'done' : ''}`}>{r.done ? 'Built' : 'Planned'}</span>
-                      <span>{r.date}</span>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Why it matters */}
         <section className="lp-wrap lp-frame">
           <div className="lp-section">
@@ -470,7 +415,6 @@ export function LandingPage() {
             <a href="#how">How it works</a>
             <a href="#try">Try it</a>
             <a href="#units">Units</a>
-            <a href="#roadmap">Roadmap</a>
             <Link to="/login">Sign in</Link>
           </nav>
           <p className="lp-footer-copy">© 2026 ColdGuard. Built at HACKFEST MKSU by Team ColdGuard.</p>
