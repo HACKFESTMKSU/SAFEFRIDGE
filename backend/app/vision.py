@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import logging
 import tempfile
+import threading
 from collections import defaultdict
 from pathlib import Path
 
@@ -19,13 +20,18 @@ logger = logging.getLogger("coldguard.vision")
 
 MAX_VIDEO_BYTES = 25 * 1024 * 1024
 MAX_DURATION_S = 30.0
-TARGET_FRAMES = 8
+# One middle frame is enough for the boxed preview. Extra frames only added
+# full decodes and extra CPU passes before the JPEG could be returned.
+TARGET_FRAMES = 1
 CONF_THRESHOLD = 0.15
 PREVIEW_MAX_WIDTH = 960
+# yolov8n default is 640. 416 keeps produce-sized objects and is much faster on CPU.
+PREDICT_IMGSZ = 416
 
 _model = None
 _model_name: str | None = None
 _load_error: str | None = None
+_model_lock = threading.Lock()
 
 
 def vision_status() -> dict:
@@ -53,10 +59,16 @@ def ensure_model():
     Default: standard YOLOv8n (~6MB, COCO). Good for demos on slow networks.
     Open-vocab YOLO-World / YOLOE need huge CLIP downloads — opt-in via VISION_MODEL.
     """
-    global _model, _model_name, _load_error
     if _model is not None:
         return _model
+    with _model_lock:
+        if _model is not None:
+            return _model
+        return _load_model()
 
+
+def _load_model():
+    global _model, _model_name, _load_error
     from .config import settings
 
     classes = vision_class_list()
@@ -123,6 +135,8 @@ def _label_to_product(label: str) -> str | None:
 def _sample_frame_indices(total: int, want: int) -> list[int]:
     if total <= 0:
         return []
+    if want <= 1:
+        return [min(total - 1, total // 2)]
     if total <= want:
         return list(range(total))
     step = total / want
@@ -131,6 +145,39 @@ def _sample_frame_indices(total: int, want: int) -> list[int]:
 
 def _is_image_name(filename: str) -> bool:
     return Path(filename).suffix.lower() in {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
+
+
+def _read_frames_at(cap, indices: list[int]) -> list:
+    """Jump to each index. Seeking avoids decoding every frame in between."""
+    import cv2
+
+    frames = []
+    for idx in indices:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        ok, frame = cap.read()
+        if ok and frame is not None:
+            frames.append(frame)
+    return frames
+
+
+def _read_frames_sequential(cap, indices: list[int]) -> list:
+    """Fallback when seek returns nothing. grab() skips frames without decoding them."""
+    if not indices:
+        return []
+    wanted = set(indices)
+    last = max(wanted)
+    found: dict[int, object] = {}
+    idx = 0
+    while idx <= last:
+        if idx in wanted:
+            ok, frame = cap.read()
+            if not ok or frame is None:
+                break
+            found[idx] = frame
+        elif not cap.grab():
+            break
+        idx += 1
+    return [found[i] for i in indices if i in found]
 
 
 def extract_frames(video_path: Path, max_frames: int = TARGET_FRAMES) -> list:
@@ -146,26 +193,22 @@ def extract_frames(video_path: Path, max_frames: int = TARGET_FRAMES) -> list:
     if not cap.isOpened():
         raise ValueError("Could not open video")
 
-    fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
-    duration = frame_count / fps if fps > 0 else 0.0
-    if duration > MAX_DURATION_S and frame_count > 0:
-        # Cap sampling to first MAX_DURATION_S of the clip
-        frame_count = int(MAX_DURATION_S * fps)
+    try:
+        fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
+        frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
+        if frame_count <= 0:
+            # Unknown length: only look at a short prefix, never the whole file.
+            frame_count = max(1, int(min(MAX_DURATION_S, 5.0) * fps))
+        elif fps > 0 and frame_count / fps > MAX_DURATION_S:
+            frame_count = int(MAX_DURATION_S * fps)
 
-    indices = set(_sample_frame_indices(frame_count, max_frames))
-    frames = []
-    idx = 0
-    while True:
-        ok, frame = cap.read()
-        if not ok:
-            break
-        if idx in indices:
-            frames.append(frame)
-        idx += 1
-        if frame_count and idx >= frame_count:
-            break
-    cap.release()
+        indices = _sample_frame_indices(frame_count, max_frames)
+        frames = _read_frames_at(cap, indices)
+        if not frames:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            frames = _read_frames_sequential(cap, indices)
+    finally:
+        cap.release()
 
     if not frames:
         raise ValueError("No frames could be sampled from the video")
@@ -229,7 +272,7 @@ def characterize_video(video_bytes: bytes, filename: str = "clip.mp4") -> dict:
         tmp.flush()
         # NamedTemporaryFile keeps a generic name; preserve extension for image path
         path = Path(tmp.name)
-        frames = extract_frames(path)
+        frames = extract_frames(path, max_frames=TARGET_FRAMES)
 
         preview_frame, _ = _resize_for_preview(frames[len(frames) // 2])
         preview_boxes: list[dict] = []
@@ -254,45 +297,39 @@ def characterize_video(video_bytes: bytes, filename: str = "clip.mp4") -> dict:
                 ),
             }
 
-        # Detect on the preview-sized mid frame so boxes match the JPEG we return
-        detect_frames = [preview_frame]
-        # Also sample a couple other frames for ranking (resized)
-        for i, frame in enumerate(frames):
-            if i == len(frames) // 2:
-                continue
-            if len(detect_frames) >= min(4, len(frames)):
-                break
-            resized, _ = _resize_for_preview(frame)
-            detect_frames.append(resized)
-
+        # One pass on the preview frame. Ultralytics maps boxes back to this
+        # image, so a smaller imgsz does not shift the rectangles.
         try:
-            for fi, frame in enumerate(detect_frames):
-                results = model.predict(frame, conf=CONF_THRESHOLD, verbose=False)
-                for result in results:
-                    names = result.names or {}
-                    boxes = result.boxes
-                    if boxes is None:
-                        continue
-                    for box in boxes:
-                        cls_id = int(box.cls.item())
-                        conf = float(box.conf.item())
-                        label = str(names.get(cls_id, cls_id))
-                        product_key = _label_to_product(label)
-                        xyxy = box.xyxy[0].tolist()
-                        entry = {
-                            "label": label,
-                            "product_key": product_key,
-                            "confidence": round(conf, 3),
-                            "x1": round(xyxy[0], 1),
-                            "y1": round(xyxy[1], 1),
-                            "x2": round(xyxy[2], 1),
-                            "y2": round(xyxy[3], 1),
-                        }
-                        raw.append(entry)
-                        if fi == 0:
-                            preview_boxes.append(entry)
-                        if product_key:
-                            scores[product_key].append(conf)
+            results = model.predict(
+                preview_frame,
+                conf=CONF_THRESHOLD,
+                verbose=False,
+                imgsz=PREDICT_IMGSZ,
+            )
+            for result in results:
+                names = result.names or {}
+                boxes = result.boxes
+                if boxes is None:
+                    continue
+                for box in boxes:
+                    cls_id = int(box.cls.item())
+                    conf = float(box.conf.item())
+                    label = str(names.get(cls_id, cls_id))
+                    product_key = _label_to_product(label)
+                    xyxy = box.xyxy[0].tolist()
+                    entry = {
+                        "label": label,
+                        "product_key": product_key,
+                        "confidence": round(conf, 3),
+                        "x1": round(xyxy[0], 1),
+                        "y1": round(xyxy[1], 1),
+                        "x2": round(xyxy[2], 1),
+                        "y2": round(xyxy[3], 1),
+                    }
+                    raw.append(entry)
+                    preview_boxes.append(entry)
+                    if product_key:
+                        scores[product_key].append(conf)
         except Exception as exc:
             # Common on bad torch/torchvision pairs: "operator torchvision::nms does not exist"
             logger.exception("Vision predict failed")

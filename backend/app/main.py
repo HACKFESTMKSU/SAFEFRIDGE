@@ -40,6 +40,16 @@ def _run_offline_check() -> None:
         rules.check_offline_devices(db)
 
 
+async def _warm_vision() -> None:
+    """Load detector weights at startup so the first upload is not a cold start."""
+    try:
+        from . import vision
+
+        await asyncio.to_thread(vision.ensure_model)
+    except Exception as exc:
+        logger.warning("Vision warmup failed: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
@@ -50,8 +60,10 @@ async def lifespan(app: FastAPI):
 
     mqtt_client.start_mqtt()
     watcher = asyncio.create_task(_offline_watcher())
+    warm = asyncio.create_task(_warm_vision())
     yield
     watcher.cancel()
+    warm.cancel()
 
 
 app = FastAPI(title="ColdGuard API", version="0.1.0", lifespan=lifespan)
