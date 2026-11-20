@@ -137,9 +137,9 @@ export function LogsPage() {
         <Segmented label="Time window" value={range} onChange={setRange} options={RANGE_OPTIONS} />
       </div>
 
-      <div className="page-intro" style={{ marginTop: -8 }}>
+      <div className="page-intro logs-filters" style={{ marginTop: -8 }}>
         <Segmented label="Log type" value={kind} onChange={setKind} options={KIND_OPTIONS} />
-        <label className="field" style={{ margin: 0, minWidth: 200 }}>
+        <label className="field logs-device-filter" style={{ margin: 0 }}>
           <span className="sr-only">Device</span>
           <select
             className="select-pill"

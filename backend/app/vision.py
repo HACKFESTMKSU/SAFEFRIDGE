@@ -265,33 +265,53 @@ def characterize_video(video_bytes: bytes, filename: str = "clip.mp4") -> dict:
             resized, _ = _resize_for_preview(frame)
             detect_frames.append(resized)
 
-        for fi, frame in enumerate(detect_frames):
-            results = model.predict(frame, conf=CONF_THRESHOLD, verbose=False)
-            for result in results:
-                names = result.names or {}
-                boxes = result.boxes
-                if boxes is None:
-                    continue
-                for box in boxes:
-                    cls_id = int(box.cls.item())
-                    conf = float(box.conf.item())
-                    label = str(names.get(cls_id, cls_id))
-                    product_key = _label_to_product(label)
-                    xyxy = box.xyxy[0].tolist()
-                    entry = {
-                        "label": label,
-                        "product_key": product_key,
-                        "confidence": round(conf, 3),
-                        "x1": round(xyxy[0], 1),
-                        "y1": round(xyxy[1], 1),
-                        "x2": round(xyxy[2], 1),
-                        "y2": round(xyxy[3], 1),
-                    }
-                    raw.append(entry)
-                    if fi == 0:
-                        preview_boxes.append(entry)
-                    if product_key:
-                        scores[product_key].append(conf)
+        try:
+            for fi, frame in enumerate(detect_frames):
+                results = model.predict(frame, conf=CONF_THRESHOLD, verbose=False)
+                for result in results:
+                    names = result.names or {}
+                    boxes = result.boxes
+                    if boxes is None:
+                        continue
+                    for box in boxes:
+                        cls_id = int(box.cls.item())
+                        conf = float(box.conf.item())
+                        label = str(names.get(cls_id, cls_id))
+                        product_key = _label_to_product(label)
+                        xyxy = box.xyxy[0].tolist()
+                        entry = {
+                            "label": label,
+                            "product_key": product_key,
+                            "confidence": round(conf, 3),
+                            "x1": round(xyxy[0], 1),
+                            "y1": round(xyxy[1], 1),
+                            "x2": round(xyxy[2], 1),
+                            "y2": round(xyxy[3], 1),
+                        }
+                        raw.append(entry)
+                        if fi == 0:
+                            preview_boxes.append(entry)
+                        if product_key:
+                            scores[product_key].append(conf)
+        except Exception as exc:
+            # Common on bad torch/torchvision pairs: "operator torchvision::nms does not exist"
+            logger.exception("Vision predict failed")
+            preview_b64 = _encode_jpeg_b64(preview_frame)
+            return {
+                "detections": [],
+                "boxes": [],
+                "preview_image_base64": preview_b64,
+                "top_product_key": None,
+                "confidence": 0.0,
+                "frames_sampled": len(frames),
+                "model": _model_name,
+                "vision_ready": False,
+                "message": (
+                    f"Vision inference failed ({exc}). "
+                    "Pick produce manually, or redeploy the API with matching "
+                    "CPU torch + torchvision (see Dockerfile / requirements-vision.txt)."
+                ),
+            }
 
         annotated = _draw_boxes(preview_frame, preview_boxes) if preview_boxes else preview_frame
         preview_b64 = _encode_jpeg_b64(annotated)

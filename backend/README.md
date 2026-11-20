@@ -74,8 +74,10 @@ docker run --rm -p 8000:8000 -e MQTT_ENABLED=false coldguard-api
 - Optional vision stack (large download — prefer CPU torch):
 
 ```bash
-pip install torch --index-url https://download.pytorch.org/whl/cpu
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 pip install -r requirements-vision.txt
+# Keep torchvision on the same CPU wheel as torch (avoids torchvision::nms errors):
+pip install --force-reinstall torchvision --index-url https://download.pytorch.org/whl/cpu
 ```
 
 Docker/Render **prefetches** `yolov8n.pt` during image build (not per request).

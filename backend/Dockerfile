@@ -12,9 +12,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements-vision.txt ./
+# Install matching CPU torch + torchvision together. Ultralytics NMS needs
+# torchvision::nms; a PyPI torchvision wheel against CPU torch breaks inference
+# with: "operator torchvision::nms does not exist".
 RUN pip install --no-cache-dir -r requirements.txt \
-    && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu \
-    && pip install --no-cache-dir -r requirements-vision.txt
+    && pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r requirements-vision.txt \
+    && pip install --no-cache-dir --force-reinstall torchvision --index-url https://download.pytorch.org/whl/cpu \
+    && python -c "import torch, torchvision; from torchvision.ops import nms; print(torch.__version__, torchvision.__version__, 'nms_ok')"
 
 # Prefetch detector weights once at image build (Render deploy), not at runtime.
 # Default matches VISION_MODEL. Override e.g.:

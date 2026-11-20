@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
+import { BrandLogo } from '../components/BrandLogo'
 import { LiveChart, type ChartPoint } from '../components/charts/LiveChart'
 import { BandMeter } from '../components/charts/BandMeter'
 import { CountUp } from '../components/ui/CountUp'
@@ -9,6 +11,7 @@ import { FridgeSim } from '../components/landing/FridgeSim'
 import { sampleFridge } from '../components/landing/story'
 import { prefersReducedMotion, useAos, useNow } from '../hooks/motion'
 import { useTilt } from '../hooks/useTilt'
+import { useMedia } from '../hooks/useMedia'
 
 const FEED_EVERY = 2000
 const FEED_POINTS = 45
@@ -100,6 +103,13 @@ function useSampleFeed() {
   return points
 }
 
+const LP_SECTIONS = [
+  { href: '#how', label: 'How it works' },
+  { href: '#try', label: 'Try it' },
+  { href: '#units', label: 'Units' },
+  { href: '#roadmap', label: 'Roadmap' },
+] as const
+
 export function LandingPage() {
   const { user } = useAuth()
   const root = useRef<HTMLDivElement>(null)
@@ -112,21 +122,43 @@ export function LandingPage() {
   const latest = feed[feed.length - 1]
   const feedDomain: [number, number] = [clock - (FEED_POINTS - 1) * FEED_EVERY, clock]
   const [step, setStep] = useState<number | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const compactNav = useMedia('(max-width: 1040px)')
 
   const demoTo = user ? '/' : '/login'
   const animated = !prefersReducedMotion()
 
+  useEffect(() => {
+    if (!compactNav) setMenuOpen(false)
+  }, [compactNav])
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuOpen(false)
+    }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [menuOpen])
+
+  const closeMenu = () => setMenuOpen(false)
+
   return (
-    <div className="lp" ref={root}>
+    <div className={`lp${menuOpen ? ' lp-menu-open' : ''}`} ref={root}>
       <header className="lp-nav">
         <div className="lp-wrap lp-nav-inner">
-          <Link to="/welcome" className="brand-badge" aria-label="ColdGuard home">
-            COLDGUARD
-          </Link>
+          <BrandLogo to="/welcome" size="md" aria-label="ColdGuard home" onClick={closeMenu} />
           <nav className="lp-links" aria-label="Sections">
-            <a href="#how">How it works</a>
-            <a href="#try">Try it</a>
-            <a href="#units">Units</a>
+            {LP_SECTIONS.map((s) => (
+              <a key={s.href} href={s.href}>
+                {s.label}
+              </a>
+            ))}
           </nav>
           <div className="lp-nav-cta">
             {user ? (
@@ -143,9 +175,47 @@ export function LandingPage() {
                 </Link>
               </>
             )}
+            <button
+              type="button"
+              className="lp-menu-btn"
+              aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={menuOpen}
+              aria-controls="lp-mobile-nav"
+              onClick={() => setMenuOpen((v) => !v)}
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
           </div>
         </div>
+        {menuOpen ? (
+          <div className="lp-wrap lp-mobile-panel" id="lp-mobile-nav">
+            <nav className="lp-mobile-links" aria-label="Sections">
+              {LP_SECTIONS.map((s) => (
+                <a key={s.href} href={s.href} onClick={closeMenu}>
+                  {s.label}
+                </a>
+              ))}
+            </nav>
+            <div className="lp-mobile-cta">
+              {user ? (
+                <Link className="btn" to="/" onClick={closeMenu}>
+                  Open dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link className="btn secondary" to="/login" onClick={closeMenu}>
+                    Sign in
+                  </Link>
+                  <Link className="btn" to="/login" onClick={closeMenu}>
+                    Live demo
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        ) : null}
       </header>
+      {menuOpen ? <div className="lp-menu-backdrop" onClick={closeMenu} aria-hidden="true" /> : null}
 
       <main>
         {/* Hero */}
@@ -410,7 +480,7 @@ export function LandingPage() {
 
       <footer className="lp-footer">
         <div className="lp-wrap lp-footer-inner">
-          <span className="brand-badge">COLDGUARD</span>
+          <BrandLogo size="sm" />
           <nav className="lp-footer-links" aria-label="Footer">
             <a href="#how">How it works</a>
             <a href="#try">Try it</a>

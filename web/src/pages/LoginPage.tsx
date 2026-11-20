@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { BrandLogo } from '../components/BrandLogo'
 import { useAuth } from '../context/AuthContext'
 
 const demos = [
@@ -34,7 +35,7 @@ export function LoginPage() {
           <ArrowLeft size={14} /> Back to the ColdGuard page
         </Link>
         <div className="login-panel">
-          <span className="brand-badge">COLDGUARD</span>
+          <BrandLogo to="/welcome" size="lg" aria-label="ColdGuard home" />
           <h1>Sign in</h1>
           <p className="sub">See every cold unit, live.</p>
 
